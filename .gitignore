@@ -1,0 +1,109 @@
+# MCA Project - Root Git Ignore
+
+# ==========================================
+# Environments
+# ==========================================
+local.env
+
+# ==========================================
+# OS / System
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+Icon?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# IDE / Editor
+# ==========================================
+.vscode/
+!.vscode/extensions.json
+.git/
+.idea/
+.fleet/
+.nova/
+.zed/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+.classpath
+
+# ==========================================
+# AI / Agentic Tools
+# ==========================================
+.commandcode/
+.agent/
+.agents/
+.claude/
+.gemini/
+.trae/
+.windsurf/
+.trunk/
+skills-lock.json
+
+# ==========================================
+# Backend (Laravel)
+# ==========================================
+backend/.env
+backend/.env.backup
+backend/.env.production
+backend/.phpactor.json
+backend/.phpunit.result.cache
+backend/.phpunit.cache/
+backend/auth.json
+backend/node_modules/
+backend/vendor/
+backend/public/build/
+backend/public/hot/
+backend/public/storage/
+backend/storage/*.key
+backend/storage/pail/
+backend/Homestead.json
+backend/Homestead.yaml
+backend/migration_log*.txt
+backend/status_log*.txt
+backend/temp_log*.txt
+backend/*.log
+
+# ==========================================
+# Frontend (Nuxt/Node)
+# ==========================================
+frontend/.output/
+frontend/.data/
+frontend/.nuxt/
+frontend/.nitro/
+frontend/.cache/
+frontend/dist/
+frontend/node_modules/
+frontend/logs/
+frontend/*.log
+frontend/gen_output.txt
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ==========================================
+# Build & Scripts (Root)
+# ==========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+node_modules/
+/public/
+
+# Root utility scripts (comment out if you want to track them)
+# *.py
+# *.js
+# *.jpg
+# *.html
+# *.ipynb
