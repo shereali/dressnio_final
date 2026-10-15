@@ -8,7 +8,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CategoryResource extends JsonResource
 {
-
     /**
      * Transform the resource into an array.
      *
@@ -16,12 +15,13 @@ class CategoryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $mediaUrl = $this->media ? ($this->media->media_url ?? $this->media->url ?? $this->media->file_name ?? $this->media->name) : ($this->image ?? null);
+
         return [
             'id'    => $this->id,
             'name'  => $this->name,
             'slug'  => $this->slug,
-            'image' =>
-            $this->media != null ? Helpers::publicPath($this->media->media_url ?? $this->media->name) : null,
+            'image' => $mediaUrl ? Helpers::publicPath($mediaUrl) : null,
         ];
     }
 }

@@ -35,6 +35,6 @@ class UserTableSeeder extends Seeder
             ]
         );
 
-        $this->command->info('Admin + demo customer created');
+        $this->command?->info('Admin + demo customer created');
     }
 }

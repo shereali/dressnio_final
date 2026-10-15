@@ -1,112 +1,120 @@
 <template>
-  <div class="container mx-auto mt-8 p-6 min-h-screen">
-    <Headline title="Your Cart" subtitle="Review your items before checkout" class="mb-8" />
+  <div class="dn-container" style="padding-top: 2.5rem; padding-bottom: 5rem;">
+    <!-- Headline -->
+    <div style="margin-bottom: 2rem;">
+      <h1 style="font-size: 2rem; font-weight: 800; color: var(--dn-tertiary);">Your Shopping Bag</h1>
+      <p style="color: var(--dn-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Review your selected garments before proceeding to secure checkout</p>
+    </div>
 
-    <div v-if="cart.length === 0" class="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-lg shadow-inner">
-      <Icon name="streamline:shopping-cart-basket-2-shopping-basket" class="w-24 h-24 text-gray-300 mb-4" />
-      <h3 class="text-2xl font-semibold text-gray-600 mb-2">Your cart is empty</h3>
-      <p class="text-gray-500 mb-6">Looks like you haven't added anything to your cart yet.</p>
-      <NuxtLink to="/" class="bg-brand hover:bg-brand-700 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-lg hover:shadow-xl">
-        Start Shopping
+    <div v-if="cart.length === 0" class="dn-card" style="max-width: 540px; margin: 3rem auto; padding: 3rem; text-align: center;">
+      <div style="width: 72px; height: 72px; background: var(--dn-primary-light); color: var(--dn-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+        <Icon name="solar:bag-3-bold" style="font-size: 2.25rem;" />
+      </div>
+      <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 0.5rem;">Your bag is empty</h3>
+      <p style="color: var(--dn-text-muted); font-size: 0.95rem; margin-bottom: 1.75rem;">Explore our new seasonal kurta sets, sarees, and dresses.</p>
+      <NuxtLink to="/shop" class="dn-btn dn-btn-primary dn-btn-lg">
+        <span>Start Shopping</span>
       </NuxtLink>
     </div>
 
-    <div v-else class="flex flex-col lg:flex-row gap-8">
+    <div v-else class="cart-grid">
       <!-- Cart Items List -->
-      <div class="flex-1 space-y-4">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
         <div
           v-for="product in cart"
           :key="`${product.id}-${product.size}-${product.color}`"
-          class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4 transition-transform hover:scale-[1.01]"
+          class="dn-card"
+          style="padding: 1.25rem; display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;"
         >
-          <div class="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-             <NuxtImg
-              :src="product.image"
-              :alt="product.name"
-              class="w-full h-full object-cover"
-            />
-          </div>
-         
-          <div class="flex-1 text-center sm:text-left">
-            <h3 class="text-lg font-bold text-gray-800">{{ product.name }}</h3>
-            <div class="text-sm text-gray-500 mt-1 flex flex-wrap justify-center sm:justify-start gap-2">
-                <span v-if="product.size" class="px-2 py-0.5 bg-gray-100 rounded text-xs border border-gray-200">Size: {{ product.size }}</span>
-                <span v-if="product.color" class="flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded text-xs border border-gray-200">
-                    Color: <span class="w-3 h-3 rounded-full border border-gray-300" :style="{ backgroundColor: product.color }"></span>
-                </span>
+          <!-- Product Thumb -->
+          <img
+            :src="product.image || '/brand/hero-chic.jpg'"
+            :alt="product.name"
+            style="width: 80px; height: 104px; object-fit: cover; border-radius: var(--dn-radius-md);"
+          />
+
+          <!-- Details -->
+          <div style="flex: 1; min-width: 180px;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--dn-tertiary); margin-bottom: 0.35rem;">
+              {{ product.name }}
+            </h3>
+            <div style="display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--dn-text-muted); margin-bottom: 0.5rem;">
+              <span v-if="product.size" class="dn-size-chip">{{ product.size }}</span>
+              <span v-if="product.color" style="display: flex; align-items: center; gap: 0.35rem;">
+                Color: <span class="dn-swatch" :style="{ backgroundColor: product.color }"></span>
+              </span>
             </div>
-            <p class="text-brand font-semibold mt-2">{{ formatCurrency(product.price * product.quantity) }}</p>
+            <strong style="font-size: 1.15rem; color: var(--dn-primary);">
+              {{ formatCurrency(product.price * product.quantity) }}
+            </strong>
           </div>
 
           <!-- Quantity Controls -->
-          <div class="flex items-center border border-gray-300 rounded-lg bg-gray-50">
+          <div style="display: inline-flex; align-items: center; border: 1.5px solid var(--dn-border); border-radius: var(--dn-radius-lg); background: var(--dn-surface); padding: 2px;">
             <button
+              type="button"
               @click="decrementQuantity(product)"
-              class="p-2 text-gray-600 hover:text-brand focus:outline-none hover:bg-gray-200 rounded-l-lg transition-colors"
+              style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
+              title="Decrease quantity"
             >
-              <Icon name="ic:round-minus" />
+              <Icon name="solar:minus-bold" style="font-size: 1rem;" />
             </button>
-            <span class="px-4 font-semibold text-gray-700 min-w-[2rem] text-center">{{ product.quantity }}</span>
+            <span style="font-weight: 800; min-width: 2.25rem; text-align: center; font-size: 0.95rem; color: var(--dn-tertiary);">{{ product.quantity }}</span>
             <button
+              type="button"
               @click="incrementQuantity(product)"
-              class="p-2 text-gray-600 hover:text-brand focus:outline-none hover:bg-gray-200 rounded-r-lg transition-colors"
+              style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
+              title="Increase quantity"
             >
-              <Icon name="ic:round-plus" />
+              <Icon name="solar:add-bold" style="font-size: 1rem;" />
             </button>
           </div>
 
-          <!-- Remove Button -->
+          <!-- Remove Item -->
           <button
-            @click="removeFromCart(product.id)"
-            class="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
-            title="Remove Item"
+            type="button"
+            class="dn-btn"
+            style="color: var(--dn-accent-rose); padding: 0.5rem;"
+            title="Remove item"
+            @click="removeFromCart(product)"
           >
-            <Icon name="ph:trash-bold" class="w-5 h-5" />
+            <Icon name="solar:trash-bin-trash-bold" style="font-size: 1.25rem;" />
           </button>
         </div>
       </div>
 
-      <!-- Cart Summary -->
-      <div class="w-full lg:w-96">
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-24">
-            <h2 class="text-xl font-bold mb-6 text-gray-800 border-b border-gray-100 pb-4">Order Summary</h2>
-            
-            <div class="space-y-3 mb-6">
-                <div class="flex justify-between items-center text-gray-600">
-                <span>Subtotal</span>
-                <span class="font-medium text-gray-800">{{ formatCurrency(subtotal) }}</span>
-                </div>
-                <div class="flex justify-between items-center text-gray-600">
-                <span>Shipping</span>
-                <span class="text-xs text-gray-400">Calculated at checkout</span>
-                </div>
-                <div class="flex justify-between items-center text-gray-600">
-                <span>Tax</span>
-                <span class="text-xs text-gray-400">Calculated at checkout</span>
-                </div>
-            </div>
-            
-            <div class="flex justify-between items-center border-t border-gray-100 pt-4 mb-8">
-                <span class="text-lg font-bold text-gray-800">Total</span>
-                <span class="text-2xl font-bold text-brand">{{ formatCurrency(total) }}</span>
+      <!-- Cart Order Summary -->
+      <div>
+        <div class="dn-card dn-card-glass" style="padding: 1.75rem; position: sticky; top: 90px;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 1.25rem;">
+            Order Summary
+          </h2>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.925rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--dn-text-muted);">Subtotal:</span>
+              <strong>{{ formatCurrency(subtotal) }}</strong>
             </div>
 
-            <div class="flex flex-col space-y-3">
-                <NuxtLink
-                to="/checkout"
-                class="w-full py-3 px-4 bg-brand hover:bg-brand-700 text-white font-bold rounded-lg text-center transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 group"
-                >
-                Proceed to Checkout
-                <Icon name="heroicons:arrow-right" class="group-hover:translate-x-1 transition-transform" />
-                </NuxtLink>
-                
-                <NuxtLink
-                to="/"
-                class="w-full py-3 px-4 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-lg text-center transition-colors flex items-center justify-center gap-2"
-                >
-                Continue Shopping
-                </NuxtLink>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--dn-text-muted);">Estimated Delivery:</span>
+              <span style="font-size: 0.825rem; color: var(--dn-text-muted);">Calculated at checkout</span>
             </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 900; color: var(--dn-primary); border-top: 1.5px solid var(--dn-border); padding-top: 0.85rem; margin-top: 0.5rem;">
+              <span>Estimated Total:</span>
+              <span>{{ formatCurrency(total) }}</span>
+            </div>
+          </div>
+
+          <NuxtLink to="/checkout" class="dn-btn dn-btn-primary dn-btn-lg dn-btn-full" style="margin-bottom: 0.75rem;">
+            <span>Proceed to Checkout</span>
+            <Icon name="solar:arrow-right-bold" />
+          </NuxtLink>
+
+          <NuxtLink to="/shop" class="dn-btn dn-btn-outline dn-btn-full">
+            <span>Continue Shopping</span>
+          </NuxtLink>
         </div>
       </div>
     </div>
@@ -115,18 +123,13 @@
 
 <script setup>
 import { useCartStore } from "~/stores/cart";
-import { ref, computed } from "vue";
+import { computed } from "vue";
 
 const cartStore = useCartStore();
-
-// Use computed to stay valid when items change
 const cart = computed(() => cartStore.items);
 
-const removeFromCart = (productId) => {
-    // We should probably remove based on ID + Size + Color specific match for robust removal
-    // using cartStore action is better practice
-    const product = cart.value.find(p => p.id === productId); 
-    if(product) cartStore.removeProduct(product);
+const removeFromCart = (product) => {
+  cartStore.removeProduct(product);
 };
 
 const incrementQuantity = (product) => {
@@ -138,18 +141,28 @@ const decrementQuantity = (product) => {
 };
 
 const subtotal = computed(() => {
-  return cart.value.reduce(
-    (acc, product) => acc + product.price * product.quantity,
-    0
-  );
+  return cart.value.reduce((acc, product) => acc + product.price * product.quantity, 0);
 });
 
 const total = computed(() => subtotal.value);
 
 const formatCurrency = (price) => {
-  // Check if price is valid number, else return 0.00
   const val = parseFloat(price);
-  if(isNaN(val)) return '৳0.00';
+  if (isNaN(val)) return "৳0.00";
   return `৳${val.toFixed(2)}`;
 };
 </script>
+
+<style scoped>
+.cart-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.85fr;
+  gap: 2.5rem;
+}
+
+@media (max-width: 991px) {
+  .cart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -68,6 +68,6 @@ class SliderTableSeeder extends Seeder
             );
         }
 
-        $this->command->info('Sliders ensured');
+        $this->command?->info('Sliders ensured');
     }
 }

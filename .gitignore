@@ -4,6 +4,9 @@
 # Environments
 # ==========================================
 local.env
+.env
+.env.*
+!.env.example
 
 # ==========================================
 # OS / System
@@ -58,6 +61,9 @@ backend/.env.backup
 backend/.env.production
 backend/.phpactor.json
 backend/.phpunit.result.cache
+backend/storage/framework/
+backend/bootstrap/cache/
+backend/dressnio_admin
 backend/.phpunit.cache/
 backend/auth.json
 backend/node_modules/

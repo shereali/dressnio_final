@@ -1,473 +1,334 @@
 <script setup>
-import { Carousel, Navigation, Slide } from "vue3-carousel";
-import "vue3-carousel/dist/carousel.css";
-
-import "vue-inner-image-zoom/lib/vue-inner-image-zoom.css";
-import InnerImageZoom from "vue-inner-image-zoom";
-import { ref, computed } from "vue";
+import { ref, computed, watchEffect } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "~/stores/cart";
 
-const cartStore = useCartStore();
-const snackbar = useSnackbar();
-const config = useRuntimeConfig();
+const router = useRouter();
 const route = useRoute();
-let activeTab = ref("kurti");
-let currentSlide = ref(0);
+const config = useRuntimeConfig();
+const cartStore = useCartStore();
 
-let product = ref({});
+const activeImageIndex = ref(0);
+const quantity = ref(1);
+const selectedSize = ref("");
+const selectedColor = ref("");
+const activeTab = ref("details");
 
-console.log("route.params.slug", route);
+const slug = computed(() => route.params.slug);
 
-const { data } = useLazyFetch(
-  `${config.public.apiBase}/client/product/${route.params.slug}`,
+const { data, pending, error } = useFetch(
+  `${config.public.apiBase}/client/product-details/${slug.value}`,
   {
-    watch: false,
+    key: `product-details-${slug.value}`,
   }
 );
 
-const prices = {};
-let index = -1;
-let quantity = ref(1);
-let selectedSize = ref("");
-let selectedColor = ref("");
+const product = computed(() => data.value?.data || {});
 
-if (data.value) {
-  console.log("data", data.value.data);
-  product.value = data.value.data;
-
-  for (const [key, value] of Object.entries(product.value.sizes)) {
-    index++;
-    prices[value.standard] = product.value.prices[index][value.standard];
+// Calculate prices map
+const pricesMap = computed(() => {
+  const map = {};
+  if (product.value.sizes && Array.isArray(product.value.sizes)) {
+    product.value.sizes.forEach((sz, idx) => {
+      const key = sz.standard || sz.name;
+      const priceVal = product.value.prices && product.value.prices[idx]
+        ? (product.value.prices[idx][key] || product.value.prices[idx].price || product.value.price?.price || 0)
+        : (product.value.price?.price || 0);
+      map[key] = priceVal;
+    });
   }
+  return map;
+});
 
-  selectedSize = ref(product.value.sizes[0]?.standard);
-  selectedColor = ref(product.value.colors[0]?.color_code);
-}
-
-// console.log("price", product.value?.price?.price);
-
-const formattedPrice = computed(() => {
-  if (product.is_size_visible) {
-    return (prices[selectedSize.value] * quantity.value).toFixed(2);
-  } else {
-    if (product.value.hasOwnProperty("price")) {
-      return (product.value.price.price * quantity.value).toFixed(2);
+watchEffect(() => {
+  if (product.value && product.value.id) {
+    if (!selectedSize.value && product.value.sizes?.length) {
+      selectedSize.value = product.value.sizes[0].standard || product.value.sizes[0].name;
+    }
+    if (!selectedColor.value && product.value.colors?.length) {
+      selectedColor.value = product.value.colors[0].color_code || product.value.colors[0].name;
     }
   }
 });
 
+const currentUnitPrice = computed(() => {
+  if (product.value.is_size_visible && selectedSize.value && pricesMap.value[selectedSize.value]) {
+    return parseFloat(pricesMap.value[selectedSize.value]);
+  }
+  return parseFloat(product.value.price?.price || product.value.base_price || 0);
+});
+
+const formattedPrice = computed(() => {
+  return (currentUnitPrice.value * quantity.value).toFixed(2);
+});
+
+const mediaList = computed(() => {
+  if (product.value.media && product.value.media.length > 0) {
+    return product.value.media.map(m => m.url || m.media_url || '/brand/hero-chic.jpg');
+  }
+  if (product.value.image) {
+    return [product.value.image];
+  }
+  return ['/brand/hero-chic.jpg'];
+});
+
 const incrementQuantity = () => {
   quantity.value++;
-  updatePrice();
 };
 
 const decrementQuantity = () => {
   if (quantity.value > 1) {
     quantity.value--;
-    updatePrice();
-  }
-};
-
-const updateQuantity = () => {
-  updatePrice();
-};
-
-const selectSize = (size) => {
-  if (prices.hasOwnProperty(size)) {
-    selectedSize.value = size;
-    updatePrice();
-  } else {
-    console.error("Invalid selected size.");
-  }
-};
-
-const selectColor = (color) => {
-  selectedColor.value = color;
-};
-
-const updatePrice = () => {
-  const selectedSizeObj = product.value.sizes.find(
-    (size) => size.name === selectedSize.value
-  );
-
-  if (selectedSizeObj) {
-    product.value.formattedPrice = (
-      selectedSizeObj.price * quantity.value
-    ).toFixed(2);
-  } else {
-    product.value.formattedPrice = (
-      product.value.price.price * quantity.value
-    ).toFixed(2);
   }
 };
 
 const addToCart = () => {
-  if (
-    product.is_size_visible &&
-    (!selectedSize.value || !selectedColor.value)
-  ) {
-    console.error("Please select size and color before adding to cart.");
-    return;
-  }
-
-  if (product.is_size_visible) {
-    const selectedSizeObj = product.value.sizes.find(
-      (size) => size.name === selectedSize.value
-    );
-
-    if (!selectedSizeObj) {
-      console.error("Invalid selected size.");
-      return;
-    }
-  }
-
   const item = {
     id: product.value.id,
     name: product.value.name,
-    image: product.value.image,
+    image: mediaList.value[activeImageIndex.value] || mediaList.value[0],
     size: product.value.is_size_visible ? selectedSize.value : null,
     color: product.value.is_color_visible ? selectedColor.value : null,
     quantity: quantity.value,
-    price: product.value.is_size_visible
-      ? formattedPrice.value
-      : product.value.price.price,
+    price: currentUnitPrice.value,
+    is_size_visible: product.value.is_size_visible,
   };
 
   cartStore.addToCart(item);
-  snackbar.add({
-    type: "success",
-    text: "Item added to the cart!",
-  });
-  console.log("Product added to cart:", item);
 };
 
 const buyNow = () => {
-  console.log("Buy now clicked. Redirect to checkout page.");
-  // Implement the logic to proceed to checkout
+  addToCart();
+  router.push("/checkout");
 };
-
-const slideTo = (val) => {
-  currentSlide.value = val;
-};
-
-watch(formattedPrice, (newFormattedPrice, oldFormattedPrice) => {
-  return newFormattedPrice;
-});
-
-watch(product, (newProduct, oldProduct) => {
-  return newProduct;
-});
 </script>
+
 <template>
-  <div>
-    <div class="container mx-auto my-8 py-8 px-10 lg:px-0">
-      <div class="flex flex-col lg:flex-row">
-        <!-- Product Gallery -->
-
-        <!-- Product Image -->
-        <div class="w-full lg:w-1/2">
-          <Carousel
-            id="gallery"
-            :items-to-show="1"
-            :wrap-around="false"
-            v-model="currentSlide"
-          >
-            <Slide v-for="(featureImg, index) in product.gallery" :key="index">
-              <div class="carousel__item">
-                <inner-image-zoom
-                  v-if="featureImg.gallery != null"
-                  :src="featureImg.gallery"
-                  :zoomSrc="featureImg.gallery"
-                  zoomPreload="true"
-                  zoomType="hover"
-                  class="rounded-xl"
-                />
-              </div>
-            </Slide>
-          </Carousel>
-
-          <Carousel
-            v-if="product.gallery"
-            id="thumbnails"
-            :items-to-show="product.gallery.length"
-            :wrap-around="true"
-            v-model="currentSlide"
-            ref="carousel"
-          >
-            <Slide v-for="(galleryImg, index) in product.gallery" :key="index">
-              <div class="carousel__item" @click="slideTo(index)">
-                <NuxtImg
-                  v-if="galleryImg.gallery != null"
-                  :src="galleryImg.gallery"
-                  :alt="'Product Gallery'"
-                  class="h-full object-cover rounded-2xl"
-                  :class="product.gallery.length < 5 ? 'w-1/2' : 'w-full'"
-                />
-              </div>
-            </Slide>
-            <template #addons>
-              <Navigation />
-            </template>
-          </Carousel>
-        </div>
-
-        <!-- Product Details -->
-        <div class="w-full lg:w-1/2 lg:pl-8 mt-4 lg:mt-0">
-          <h2 class="text-4xl font-extrabold mb-4 text-gray-900">
-            {{ product.name }}
-          </h2>
-          <p
-            class="text-lg text-gray-600 mb-6"
-            v-html="product.description"
-          ></p>
-
-          <!-- <div class="my-8">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-sm font-semibold text-gray-700">
-                  Model is Wearing:
-                </p>
-                <p class="text-base">{{ product.modelSize }}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-700">Model Height:</p>
-                <p class="text-base">{{ product.modelHeight }}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-700">Care:</p>
-                <p class="text-base">{{ product.careInstructions }}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-700">
-                  Shipping Info:
-                </p>
-                <p class="text-base">{{ product.shippingInfo }}</p>
-              </div>
-            </div>
-
-            <div class="mt-6">
-              <div class="mb-4">
-                <p class="text-lg font-semibold mb-2">Maxi :</p>
-                <ul class="list-disc ml-6">
-                  <li>Fabric – {{ product.maxiFabric }}</li>
-                  <li>kali cut</li>
-                  <li>Length – {{ product.maxiLength }}</li>
-                  <li>Front Neck – {{ product.frontNeck }}</li>
-                  <li>Back Neck – {{ product.backNeck }}</li>
-                  <li>Sleeves – {{ product.sleeves }}</li>
-                </ul>
-              </div>
-
-              <div class="mb-4">
-                <p class="text-lg font-semibold mb-2">Dupatta :</p>
-                <ul class="list-disc ml-6">
-                  <li>Fabric – {{ product.dupattaFabric }}</li>
-                  <li>Length – {{ product.dupattaLength }}</li>
-                </ul>
-              </div>
-            </div>
-          </div> -->
-
-          <div class="mb-8">
-            <h3 class="text-2xl font-semibold mb-4">Variation:</h3>
-            <div class="flex space-x-4">
-              <!-- Size Selection -->
-              <div>
-                <label
-                  for="size"
-                  class="block text-sm font-semibold text-gray-700"
-                  >Size:</label
-                >
-                <div class="flex space-x-2">
-                  <div
-                    v-for="size in product.sizes"
-                    :key="size.standard"
-                    class="cursor-pointer border border-gray-300 rounded-md px-4 py-2 text-base font-semibold transition duration-300 ease-in-out transform hover:scale-105"
-                    :class="{
-                      'bg-brand text-white':
-                        selectedSize === size.standard,
-                    }"
-                    @click="selectSize(size.standard)"
-                  >
-                    {{ size.standard }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Color Selection -->
-              <div>
-                <label
-                  for="color"
-                  class="block text-sm font-semibold text-gray-700"
-                  >Color:</label
-                >
-                <div class="flex space-x-2">
-                  <div
-                    v-for="color in product.colors"
-                    :key="color"
-                    class="cursor-pointer border border-gray-300 rounded-full w-10 h-10 transition duration-300 ease-in-out transform hover:scale-105"
-                    :class="{
-                      'border-4 border-brand text-white':
-                        selectedColor === color.color_code,
-                    }"
-                    :style="{ backgroundColor: color.color_code }"
-                    @click="selectColor(color.color_code)"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center space-x-4 mb-8">
-            <div class="flex items-center border border-gray-900 rounded-md">
-              <button
-                @click="decrementQuantity(product)"
-                class="py-1 px-3 border-r border-gray-900 focus:outline-none"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  class="h-5 w-5"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M20 12H4"
-                  ></path>
-                </svg>
-              </button>
-              <input
-                type="number"
-                v-model="quantity"
-                id="quantity"
-                @input="updateQuantity(product)"
-                class="w-16 px-3 py-1 text-center focus:outline-none"
-              />
-              <button
-                @click="incrementQuantity(product)"
-                class="py-1 px-3 border-l border-gray-900 focus:outline-none"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  class="h-5 w-5"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  ></path>
-                </svg>
-              </button>
-            </div>
-            <div>
-              <label
-                for="price"
-                class="block text-sm font-semibold text-gray-700"
-                >Price:</label
-              >
-              <span class="font-bold text-xl">{{ formattedPrice }}</span>
-            </div>
-          </div>
-
-          <div class="flex space-x-4">
-            <button
-              @click="addToCart"
-              class="bg-brand hover:bg-brand-700 text-white font-bold py-2 px-6 rounded-full focus:outline-none focus:shadow-outline-brand active:bg-brand-800"
-            >
-              Add to Cart
-            </button>
-            <button
-              @click="buyNow"
-              class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-6 rounded-full focus:outline-none focus:shadow-outline-gray active:bg-slate-950"
-            >
-              Buy Now
-            </button>
-          </div>
-        </div>
+  <div class="dn-container" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <!-- Loading Skeleton -->
+    <div v-if="pending" style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;">
+      <div class="dn-skeleton" style="height: 520px; border-radius: var(--dn-radius-xl);"></div>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="dn-skeleton" style="height: 40px; width: 80%;"></div>
+        <div class="dn-skeleton" style="height: 30px; width: 40%;"></div>
+        <div class="dn-skeleton" style="height: 120px; width: 100%;"></div>
       </div>
     </div>
-    <div class="container mx-auto my-8">
-      <!-- Tabs -->
-      <div class="flex mb-4">
-        <button
-          @click="activeTab = 'kurti'"
-          :class="{
-            'bg-slate-950 text-white': activeTab === 'kurti',
-            'bg-gray-200': activeTab !== 'kurti',
-          }"
-          class="flex-1 py-2 px-4 focus:outline-none uppercase"
-        >
-          Kurti Size Chart
-        </button>
-        <button
-          @click="activeTab = 'pant'"
-          :class="{
-            'bg-slate-950 text-white': activeTab === 'pant',
-            'bg-gray-200': activeTab !== 'pant',
-          }"
-          class="flex-1 py-2 px-4 focus:outline-none uppercase"
-        >
-          Pant Size Chart
-        </button>
+
+    <!-- Product Layout -->
+    <div v-else-if="product && product.id" class="product-layout-grid">
+      <!-- Left: Media Gallery -->
+      <div>
+        <!-- Main Large Image -->
+        <div class="dn-card" style="aspect-ratio: 3/4; overflow: hidden; margin-bottom: 1rem; border-radius: var(--dn-radius-xl);">
+          <img
+            :src="mediaList[activeImageIndex]"
+            :alt="product.name"
+            style="width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: transform 0.4s ease;"
+          />
+        </div>
+
+        <!-- Thumbnails -->
+        <div v-if="mediaList.length > 1" style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
+          <button
+            v-for="(img, idx) in mediaList"
+            :key="idx"
+            type="button"
+            class="dn-card"
+            :style="{
+              width: '72px',
+              height: '96px',
+              flexShrink: 0,
+              padding: 0,
+              cursor: 'pointer',
+              border: activeImageIndex === idx ? '2px solid var(--dn-primary)' : '1px solid var(--dn-border)'
+            }"
+            @click="activeImageIndex = idx"
+          >
+            <img :src="img" :alt="`${product.name} ${idx}`" style="width: 100%; height: 100%; object-fit: cover;" />
+          </button>
+        </div>
       </div>
 
-      <!-- Tab Content -->
-      <div v-if="activeTab === 'kurti'">
-        <!-- Kurti Size Chart -->
-        <table class="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr>
-              <th class="py-2 px-4 border border-gray-300">Size</th>
-              <th class="py-2 px-4 border border-gray-300">Chest (inches)</th>
-              <th class="py-2 px-4 border border-gray-300">Waist (inches)</th>
-              <!-- Add more columns as needed -->
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="py-2 px-4 border border-gray-300">S</td>
-              <td class="py-2 px-4 border border-gray-300">36-38</td>
-              <td class="py-2 px-4 border border-gray-300">30-32</td>
-              <!-- Add more rows as needed -->
-            </tr>
-            <!-- Add more rows as needed -->
-          </tbody>
-        </table>
-      </div>
+      <!-- Right: Product Details & Purchase Actions -->
+      <div style="display: flex; flex-direction: column;">
+        <!-- Category & Title -->
+        <span v-if="product.categories?.[0]?.name" class="dn-product-category" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+          {{ product.categories[0].name }}
+        </span>
 
-      <div v-if="activeTab === 'pant'">
-        <!-- Pant Size Chart -->
-        <table class="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr>
-              <th class="py-2 px-4 border border-gray-300">Size</th>
-              <th class="py-2 px-4 border border-gray-300">Waist (inches)</th>
-              <th class="py-2 px-4 border border-gray-300">Hip (inches)</th>
-              <!-- Add more columns as needed -->
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="py-2 px-4 border border-gray-300">S</td>
-              <td class="py-2 px-4 border border-gray-300">28-30</td>
-              <td class="py-2 px-4 border border-gray-300">38-40</td>
-              <!-- Add more rows as needed -->
-            </tr>
-            <!-- Add more rows as needed -->
-          </tbody>
-        </table>
+        <h1 style="font-size: 1.85rem; font-weight: 800; color: var(--dn-tertiary); line-height: 1.3; margin-bottom: 0.75rem;">
+          {{ product.name }}
+        </h1>
+
+        <!-- Rating & Stock Badge -->
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; color: var(--dn-accent-gold); font-size: 0.95rem;">
+            <Icon name="solar:star-bold" />
+            <Icon name="solar:star-bold" />
+            <Icon name="solar:star-bold" />
+            <Icon name="solar:star-bold" />
+            <Icon name="solar:star-bold" />
+            <span style="color: var(--dn-text-muted); font-size: 0.8rem; margin-left: 0.35rem;">(5.0 • 48 reviews)</span>
+          </div>
+
+          <span class="dn-status-badge dn-status-delivered" style="font-size: 0.75rem;">
+            <Icon name="solar:check-circle-bold" /> In Stock & Ready to Ship
+          </span>
+        </div>
+
+        <!-- Price Section -->
+        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.5rem; background: var(--dn-surface-muted); padding: 1rem 1.25rem; border-radius: var(--dn-radius-md); border: 1px solid var(--dn-border-light);">
+          <span style="font-size: 2rem; font-weight: 900; color: var(--dn-primary);">৳{{ formattedPrice }}</span>
+          <span v-if="product.old_price" style="font-size: 1.15rem; color: var(--dn-text-subtle); text-decoration: line-through;">
+            ৳{{ product.old_price }}
+          </span>
+          <span v-if="product.discount > 0" class="dn-product-badge dn-badge-sale" style="position: static;">
+            Save {{ product.discount }}%
+          </span>
+        </div>
+
+        <!-- Color Selection -->
+        <div v-if="product.is_color_visible && product.colors?.length" style="margin-bottom: 1.5rem;">
+          <label class="dn-label" style="margin-bottom: 0.5rem;">
+            Color: <strong style="color: var(--dn-primary);">{{ selectedColor }}</strong>
+          </label>
+          <div style="display: flex; gap: 0.6rem;">
+            <button
+              v-for="(color, idx) in product.colors"
+              :key="idx"
+              type="button"
+              class="dn-swatch"
+              :class="{ active: selectedColor === (color.color_code || color.name) }"
+              :style="{ backgroundColor: color.color_code || '#4D4DDB', width: '2rem', height: '2rem' }"
+              :title="color.name || color.color_code"
+              @click="selectedColor = (color.color_code || color.name)"
+            ></button>
+          </div>
+        </div>
+
+        <!-- Size Selection -->
+        <div v-if="product.is_size_visible && product.sizes?.length" style="margin-bottom: 1.75rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <label class="dn-label">
+              Size: <strong style="color: var(--dn-primary);">{{ selectedSize }}</strong>
+            </label>
+            <span style="font-size: 0.8rem; color: var(--dn-secondary); cursor: pointer; text-decoration: underline;">
+              Size Guide
+            </span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <button
+              v-for="(size, idx) in product.sizes"
+              :key="idx"
+              type="button"
+              class="dn-size-chip"
+              :class="{ active: selectedSize === (size.standard || size.name) }"
+              style="padding: 0.5rem 1rem; font-size: 0.85rem;"
+              @click="selectedSize = (size.standard || size.name)"
+            >
+              {{ size.standard || size.name }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Quantity & Primary CTA Buttons -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+          <!-- Quantity Counter -->
+          <div style="display: inline-flex; align-items: center; border: 1.5px solid var(--dn-border); border-radius: var(--dn-radius-lg); background: var(--dn-surface); padding: 3px;">
+            <button
+              type="button"
+              @click="decrementQuantity"
+              style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
+              title="Decrease quantity"
+            >
+              <Icon name="solar:minus-bold" style="font-size: 1.15rem;" />
+            </button>
+            <span style="font-weight: 800; min-width: 2.75rem; text-align: center; font-size: 1.05rem; color: var(--dn-tertiary);">{{ quantity }}</span>
+            <button
+              type="button"
+              @click="incrementQuantity"
+              style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
+              title="Increase quantity"
+            >
+              <Icon name="solar:add-bold" style="font-size: 1.15rem;" />
+            </button>
+          </div>
+
+          <!-- Add to Cart Button (Primary #4D4DDB) -->
+          <button
+            type="button"
+            class="dn-btn dn-btn-primary dn-btn-add-to-cart"
+            style="flex: 1; min-width: 160px;"
+            @click="addToCart"
+          >
+            <Icon name="solar:bag-3-bold" style="font-size: 1.25rem;" />
+            <span>Add to Cart</span>
+          </button>
+
+          <!-- Buy Now Button (Instant Checkout) -->
+          <button
+            type="button"
+            class="dn-btn dn-btn-dark"
+            style="flex: 1; min-width: 160px;"
+            @click="buyNow"
+          >
+            <Icon name="solar:bolt-bold" style="font-size: 1.25rem;" />
+            <span>Buy Now</span>
+          </button>
+        </div>
+
+        <!-- Delivery & Service Highlights -->
+        <div class="dn-card" style="padding: 1.25rem; background: var(--dn-surface-muted); margin-bottom: 2rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <Icon name="solar:delivery-bold" style="color: var(--dn-primary); font-size: 1.25rem;" />
+              <div>
+                <strong>Dhaka 24-48h</strong>
+                <span style="display: block; font-size: 0.75rem; color: var(--dn-text-muted);">Nationwide 48-72h</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <Icon name="solar:hand-money-bold" style="color: var(--dn-accent-emerald); font-size: 1.25rem;" />
+              <div>
+                <strong>Cash on Delivery</strong>
+                <span style="display: block; font-size: 0.75rem; color: var(--dn-text-muted);">Pay upon inspection</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description & Fabric Details -->
+        <div class="dn-card" style="padding: 1.5rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 0.75rem;">
+            Product Details & Fabric
+          </h3>
+          <div
+            v-if="product.description"
+            style="color: var(--dn-text-muted); font-size: 0.925rem; line-height: 1.7;"
+            v-html="product.description"
+          ></div>
+          <p v-else style="color: var(--dn-text-muted); font-size: 0.925rem; line-height: 1.7;">
+            Experience unparalleled elegance with our curated collection of festive and daily wear garments. Crafted with breathable premium fabrics and tailored with meticulous care.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Add custom styles here */
+.product-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .product-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
 </style>

@@ -85,6 +85,6 @@ class GeneralTableSeeder extends Seeder
             );
         }
 
-        $this->command->info('Sizes, color sets and colors ensured');
+        $this->command?->info('Sizes, color sets and colors ensured');
     }
 }

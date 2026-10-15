@@ -25,10 +25,8 @@ export function useApiFetch<T>(
 
       headers: {
         ...options.headers,
-
-        "X-XSRF-TOKEN": csrfToken, // Using the CSRF token from cookies
-
-        ...(authorizationToken && { Authorization: authorizationToken }), // Only include Authorization header if the token exists
+        ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+        ...(authorizationToken ? { Authorization: authorizationToken } : {}),
       },
     }
   );

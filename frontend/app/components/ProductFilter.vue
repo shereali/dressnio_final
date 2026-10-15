@@ -32,11 +32,11 @@ console.log("bestSeller", props.bestSeller);
     <!-- Tab Content -->
     <div v-if="activeTab === 'latest'">
       <!-- Latest Products Component -->
-      <LazyLatestProducts :latestProducts="props.latest" />
+      <LatestProducts :latestProducts="props.latest || []" />
     </div>
     <div v-else>
       <!-- Best Seller Products Component -->
-      <LazyBestSellerProducts :bestSellerProducts="props.bestSeller" />
+      <BestSellerProducts :bestSellerProducts="props.bestSeller || []" />
     </div>
     </div>
   </div>

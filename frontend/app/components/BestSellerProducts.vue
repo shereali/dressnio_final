@@ -16,11 +16,11 @@ watch(bestSellerProducts, (newBestSellerProducts, oldBestSellerProducts) => {
   <div>
     <h3 class="text-xl font-semibold mb-2">Best Seller Products</h3>
     <!-- Display Best Seller Products -->
-    <LazyProduct :products="bestSellerProducts" />
-    <div class="flex justify-center items-center">
+    <Product :products="props.bestSellerProducts || []" />
+    <div class="flex justify-center items-center mt-6">
       <NuxtLink
-        to="#"
-        class="border border-brand p-2 px-10 bg-transparent text-brand font-bold hover:bg-brand hover:text-white transition-colors uppercase text-sm tracking-widest"
+        to="/shop"
+        class="dn-btn dn-btn-outline"
       >
         VIEW ALL PRODUCTS
       </NuxtLink>

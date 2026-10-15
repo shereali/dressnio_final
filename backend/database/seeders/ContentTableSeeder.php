@@ -144,6 +144,6 @@ class ContentTableSeeder extends Seeder
             ]
         );
 
-        $this->command->info('Stories, posts, testimonials, watch-and-buy and popups ensured');
+        $this->command?->info('Stories, posts, testimonials, watch-and-buy and popups ensured');
     }
 }

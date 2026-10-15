@@ -1,92 +1,120 @@
 <script setup>
+import { computed } from "vue";
 // Import Swiper styles
 import "swiper/css";
-
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import "swiper/css/virtual";
+
+import { Swiper, SwiperSlide } from "swiper/vue";
+import { Pagination, Navigation, Autoplay } from "swiper/modules";
 
 const props = defineProps({
   watchAndBuy: {
     type: Array,
-    required: true,
+    default: () => [],
   },
 });
 
-const { watchAndBuy } = toRefs(props);
-
-watch(watchAndBuy, (newWatchAndBuy, oldWatchAndBuy) => {
-  return newWatchAndBuy;
-});
-
-// import "./style.css";
-
-// import Swiper core and required modules
-import { Pagination, Navigation, Virtual } from "swiper/modules";
-
-// Create array with 500 slides
-
-let swiperRef = null;
 let { isMobile } = useDevice();
 
-const setSwiperRef = (swiper) => {
-  swiperRef = swiper;
-};
-const slideTo = (index) => {
-  swiperRef.slideTo(index - 1, 0);
-};
+const defaultItems = [
+  {
+    id: 1,
+    video: "/brand/hero-evening.jpg",
+    product: {
+      id: 1,
+      name: "Embroidered Cotton 3-Piece Set",
+      slug: "embroidered-cotton-3-piece-set",
+      base_price: 2150,
+      price: { price: 2150, discount_price: 1850 },
+      media: [{ media_url: "/brand/hero-evening.jpg" }],
+    },
+  },
+  {
+    id: 2,
+    video: "/brand/hero-summer.jpg",
+    product: {
+      id: 2,
+      name: "Floral Print Chiffon Maxi",
+      slug: "floral-print-chiffon-maxi",
+      base_price: 1850,
+      price: { price: 1850, discount_price: 1550 },
+      media: [{ media_url: "/brand/hero-summer.jpg" }],
+    },
+  },
+  {
+    id: 3,
+    video: "/brand/hero-chic.jpg",
+    product: {
+      id: 3,
+      name: "Pure Georgette Party Kurti",
+      slug: "pure-georgette-party-kurti",
+      base_price: 1650,
+      price: { price: 1650, discount_price: 1350 },
+      media: [{ media_url: "/brand/hero-chic.jpg" }],
+    },
+  },
+  {
+    id: 4,
+    video: "/brand/hero-festive.jpg",
+    product: {
+      id: 4,
+      name: "Festive Embroidered Silk Kameez",
+      slug: "festive-embroidered-silk-kameez",
+      base_price: 2750,
+      price: { price: 2750, discount_price: 2450 },
+      media: [{ media_url: "/brand/hero-festive.jpg" }],
+    },
+  },
+];
+
+const videoItems = computed(() => {
+  if (props.watchAndBuy && props.watchAndBuy.length > 0) {
+    return props.watchAndBuy;
+  }
+  return defaultItems;
+});
 </script>
 
 <template>
-  <div class="bg-gradient-to-br from-brand via-brand-600 to-brand-700 px-6 md:px-10 pt-10 pb-16 md:pb-20 relative overflow-hidden">
+  <div class="bg-gradient-to-br from-brand via-brand-600 to-brand-700 px-4 sm:px-6 md:px-10 pt-10 pb-16 md:pb-20 relative overflow-hidden">
     <!-- Decorative background elements -->
-    <div class="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-0 left-0 w-96 h-96 bg-brand-900/30 rounded-full blur-3xl"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 left-0 w-96 h-96 bg-brand-900/30 rounded-full blur-3xl pointer-events-none"></div>
     
-    <div class="relative z-10">
+    <div class="relative z-10 max-w-7xl mx-auto">
       <Headline
         title="Watch & Buy"
-        subtitle="Discover trending styles through our curated videos"
-        class="mb-12 text-white"
+        subtitle="Discover trending boutique styles through our curated lookbooks"
+        class="mb-10 text-white"
       />
-    <swiper
-      :modules="[Pagination, Navigation, Virtual]"
-      :slidesPerView="isMobile ? 1 : 5"
-      :spaceBetween="30"
-      :centeredSlides="false"
-      :navigation="true"
-      :virtual="true"
-      class="mySwiper"
-      @swiper="setSwiperRef"
-    >
-      <swiper-slide
-        v-for="(item, index) in watchAndBuy"
-        :key="index"
-        :virtualIndex="index"
+
+      <Swiper
+        :modules="[Pagination, Navigation, Autoplay]"
+        :slides-per-view="isMobile ? 1.2 : 4"
+        :space-between="20"
+        :navigation="true"
+        :autoplay="{ delay: 4000, disableOnInteraction: false }"
+        class="lookbook-swiper"
       >
-        <LazyWatchAndBuyProduct
-          :product="item.product"
-          :media="item?.video"
-          :itemIndex="index"
-        />
-      </swiper-slide>
-    </swiper>
+        <SwiperSlide
+          v-for="(item, index) in videoItems"
+          :key="item.id || index"
+        >
+          <WatchAndBuyProduct
+            :product="item.product"
+            :media="item.video"
+            :itemIndex="index"
+          />
+        </SwiperSlide>
+      </Swiper>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Customizing scrollbar appearance */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 0.1px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: white; /* Make thumb transparent */
-  border-radius: 3px;
-}
-
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: white; /* Change thumb color on hover */
+.lookbook-swiper {
+  width: 100%;
+  padding-bottom: 2rem;
 }
 </style>

@@ -1,73 +1,57 @@
 <script setup>
-import { ref } from "vue";
+import { computed } from "vue";
 
-const story = ref([]);
-const sliders = ref([]);
-const categories = ref([]);
-const latest = ref([]);
-const best_seller = ref([]);
-const fashionist_choice = ref([]);
-const watch_n_buy = ref([]);
-const testimonials = ref([]);
-const posts = ref([]);
-
-const { data, pending, error, refresh } = useApiFetch("/client/homepage", {
-  method: "GET",
+const { data, pending, error } = await useApiFetch("/client/homepage", {
+  key: "homepage-payload",
+  lazy: false,
 });
 
-watchEffect(() => {
-  if (data.value) {
-    story.value = data.value.story?.data || data.value.story || [];
-    sliders.value = data.value.sliders?.data || data.value.sliders || [];
-    categories.value = data.value.categories?.data || data.value.categories || [];
-    watch_n_buy.value = data.value.watch_n_buy?.data || data.value.watch_n_buy || [];
-    latest.value = data.value.latest?.data || data.value.latest || [];
-    best_seller.value = data.value.best_seller?.data || data.value.best_seller || [];
-    fashionist_choice.value = data.value.fashionist_choice?.data || data.value.fashionist_choice || [];
-    testimonials.value = data.value.testimonials?.data || data.value.testimonials || [];
-    posts.value = data.value.posts?.data || data.value.posts || [];
-  } else {
-    refresh();
-  }
-});
+const payload = computed(() => data.value?.data || {});
 
-if (error.value) {
-  console.error("API Error:", error.value);
-}
+const story = computed(() => payload.value.story || []);
+const sliders = computed(() => payload.value.sliders || []);
+const categories = computed(() => payload.value.categories || []);
+const watch_n_buy = computed(() => payload.value.watch_n_buy || []);
+const latest = computed(() => payload.value.latest || []);
+const best_seller = computed(() => payload.value.best_seller || []);
+const fashionist_choice = computed(() => payload.value.fashionist_choice || []);
+const testimonials = computed(() => payload.value.testimonials || []);
+const posts = computed(() => payload.value.posts || []);
 </script>
 
 <template>
   <div>
-    <LazySlider v-if="!pending && data" :sliders="sliders" />
-    <SkeletonSlider v-else />
+    <!-- Stories / Reels Highlights -->
+    <ProductVariation :story="story" />
 
-    <LazyProductVariation v-if="!pending && data" :story="story" />
-    <SkeletonProductVariation v-else />
+    <!-- Hero Slider Showcase -->
+    <Slider :sliders="sliders" />
 
-    <LazyCategory v-if="!pending && data" :categories="categories" />
-    <SkeletonCategory v-else />
+    <!-- Categories Grid -->
+    <Category :categories="categories" />
 
-    <LazyWatchAndBuy v-if="!pending && data" :watchAndBuy="watch_n_buy" />
-    <SkeletonWatchAndBuy v-else />
+    <!-- Watch & Buy Video Lookbooks -->
+    <WatchAndBuy :watchAndBuy="watch_n_buy" />
 
+    <!-- New Arrivals & Best Sellers Filter -->
     <ProductFilter
-      v-if="!pending && data"
       :latest="latest"
       :bestSeller="best_seller"
     />
-    <SkeletonProductFilter v-else />
 
-    <LazyFashionistChoice
-      v-if="!pending && data"
+    <!-- Fashionist Choice Carousel -->
+    <FashionistChoice
+      v-if="fashionist_choice.length > 0"
       :fashionistChoice="fashionist_choice"
     />
 
-    <SkeletonFashionistChoice v-else />
-
+    <!-- Spotlight Hero Product -->
     <HighlightedProduct />
 
-    <LazyTestimonial :testimonials="testimonials" />
+    <!-- Customer Reviews -->
+    <Testimonial v-if="testimonials.length > 0" :testimonials="testimonials" />
 
-    <LazyBlogList :posts="posts" />
+    <!-- Blog & Guides -->
+    <BlogList v-if="posts.length > 0" :posts="posts" />
   </div>
 </template>

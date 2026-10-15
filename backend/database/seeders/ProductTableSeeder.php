@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Color;
+use App\Models\Media;
+use App\Models\Mediable;
 use App\Models\Price;
 use App\Models\Product;
 use App\Models\Productable;
@@ -23,6 +25,17 @@ class ProductTableSeeder extends Seeder
         $colors = Color::all();
         $sizesKameez = Size::where('size_type', 1)->get();
         $sizesSalwar = Size::where('size_type', 2)->get();
+
+        $demoImages = [
+            '/brand/hero-chic.jpg',
+            '/brand/hero-evening.jpg',
+            '/brand/hero-summer.jpg',
+            '/brand/hero-festive.jpg',
+            '/brand/story-1.jpg',
+            '/brand/story-2.jpg',
+            '/brand/story-3.jpg',
+            '/brand/story-4.jpg',
+        ];
 
         $products = [
             ['name' => 'Midnight Blue Embroidery Kurta Set', 'category' => 'Kurta Sets', 'cloth_type' => 1, 'base' => 3450],
@@ -83,6 +96,26 @@ class ProductTableSeeder extends Seeder
                     'created_by'          => 1,
                 ]
             );
+
+            // Ensure Product has a Media image
+            $imgUrl = $demoImages[$index % count($demoImages)];
+            $media = Media::firstOrCreate(
+                ['slug' => 'prod-media-' . $slug],
+                [
+                    'name'        => $item['name'],
+                    'media_url'   => $imgUrl,
+                    'category_id' => 1,
+                    'media_type'  => 1,
+                ]
+            );
+
+            if (! Mediable::where('media_id', $media->id)->where('mediable_id', $product->id)->where('mediable_type', 'products')->exists()) {
+                Mediable::create([
+                    'media_id'      => $media->id,
+                    'mediable_id'   => $product->id,
+                    'mediable_type' => 'products',
+                ]);
+            }
 
             $category = $categories->get($item['category']);
             if ($category && ! $product->categories()->where('categories.id', $category->id)->exists()) {
@@ -153,6 +186,6 @@ class ProductTableSeeder extends Seeder
             $product->update(['stock_available' => $totalStock]);
         }
 
-        $this->command->info(count($products) . ' products ensured');
+        $this->command?->info(count($products) . ' products ensured');
     }
 }

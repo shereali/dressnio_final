@@ -17,6 +17,10 @@ export default defineNuxtConfig({
     },
   },
 
+  css: [
+    "~/assets/scss/dressnio-theme.scss",
+  ],
+
   runtimeConfig: {
     public: {
       // apiBase: process.env.API_BASE_URL || "https://api.dressnio.com/api",
@@ -78,12 +82,7 @@ export default defineNuxtConfig({
           href: "/css/font-awesome.css",
         },
       ],
-      script: [
-        {
-          type: "text/javascript",
-          src: "/js/script.js",
-        },
-      ],
+      script: [],
     },
   },
 

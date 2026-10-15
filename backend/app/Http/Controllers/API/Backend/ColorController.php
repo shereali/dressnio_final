@@ -2,104 +2,119 @@
 
 namespace App\Http\Controllers\API\Backend;
 
-use App\Models\Color;
-use App\Models\ColorSet;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Repositories\CrudRepository;
-use App\Http\Requests\Backend\ColorRequest;
-use App\Http\Resources\Backend\ColorResource;
 use App\Http\Requests\Backend\ColorSetRequest;
 use App\Http\Resources\Backend\ColorSetResource;
+use App\Models\Color;
+use App\Models\ColorSet;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ColorController extends Controller
 {
-
-    public $repository;
-
-    public function __construct(CrudRepository $repository)
+    /**
+     * Display a listing of color sets.
+     */
+    public function index(Request $request): JsonResponse
     {
-        $this->repository = $repository;
-        $this->repository->setModel(ColorSet::class);
-        $this->repository->setResource(ColorSetResource::class);
-        $this->repository->message->setMessage('Color');
+        $colorSets = ColorSet::with('colors')->latest()->get();
+
+        return ApiResponse::success(ColorSetResource::collection($colorSets));
     }
 
     /**
-     * Display a listing of the resource.
+     * Store a newly created color set with child colors.
      */
-    public function index(Request $request)
+    public function store(ColorSetRequest $request): JsonResponse
     {
-
-        return $this->repository->fetchData();
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(ColorSetRequest $request)
-    {
-
-        $this->repository->create(
-            [
+        return DB::transaction(function () use ($request) {
+            $colorSet = ColorSet::create([
                 'name' => $request->name,
-                'slug' => Str::slug($request->name)
-            ]
-        );
+                'slug' => Str::slug($request->name),
+            ]);
 
-        $result = $this->repository->message->getData();
+            if (is_array($request->color_code)) {
+                foreach ($request->color_code as $key => $code) {
+                    if (! empty($code)) {
+                        Color::create([
+                            'color_set_id' => $colorSet->id,
+                            'color_code'   => $code,
+                            'color_name'   => $request->color_name[$key] ?? null,
+                        ]);
+                    }
+                }
+            }
 
-        $this->repository->setModel(Color::class);
+            return ApiResponse::created(new ColorSetResource($colorSet->load('colors')), 'Color set created successfully');
+        });
+    }
 
-        $data = [];
+    /**
+     * Display the specified color set.
+     */
+    public function show(string $id): JsonResponse
+    {
+        $colorSet = ColorSet::with('colors')->find((int) $id);
 
-        foreach ($request->color_code as $key => $item) {
-            $data[$key]['color_set_id'] = $result->id;
-            $data[$key]['color_code'] = $request->color_code[$key];
-            $data[$key]['color_name'] = $request->color_name[$key];
+        if (! $colorSet) {
+            return ApiResponse::notFound('Color set not found');
         }
 
-        return $this->repository->bulkCreation($data);
+        return ApiResponse::success(new ColorSetResource($colorSet));
     }
 
     /**
-     * Display the specified resource.
+     * Update the specified color set.
      */
-    public function show(string $id)
+    public function update(ColorSetRequest $request, string $id): JsonResponse
     {
-        return $this->repository->find($id);
-    }
+        $colorSet = ColorSet::find((int) $id);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(ColorSetRequest $request, string $id)
-    {
-        $this->repository->update(['name' => $request->name, 'slug' => Str::slug($request->name)], $id);
-
-        Color::where('color_set_id', $id)->delete();
-
-        $this->repository->setModel(Color::class);
-
-        $data = [];
-
-        foreach ($request->color_code as $key => $item) {
-            $data[$key]['color_set_id'] = $id;
-            $data[$key]['color_code'] = $request->color_code[$key];
+        if (! $colorSet) {
+            return ApiResponse::notFound('Color set not found');
         }
 
-        return $this->repository->bulkCreation($data);
+        return DB::transaction(function () use ($request, $colorSet) {
+            $colorSet->update([
+                'name' => $request->name,
+                'slug' => Str::slug($request->name),
+            ]);
+
+            Color::where('color_set_id', $colorSet->id)->delete();
+
+            if (is_array($request->color_code)) {
+                foreach ($request->color_code as $key => $code) {
+                    if (! empty($code)) {
+                        Color::create([
+                            'color_set_id' => $colorSet->id,
+                            'color_code'   => $code,
+                            'color_name'   => $request->color_name[$key] ?? null,
+                        ]);
+                    }
+                }
+            }
+
+            return ApiResponse::success(new ColorSetResource($colorSet->load('colors')), 'Color set updated successfully');
+        });
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified color set.
      */
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
-        $result = $this->repository->destroy($id);
-        $color = Color::where('color_set_id', $id)->forceDelete();
+        $colorSet = ColorSet::find((int) $id);
 
-        return $result;
+        if (! $colorSet) {
+            return ApiResponse::notFound('Color set not found');
+        }
+
+        $colorSet->delete();
+        Color::where('color_set_id', (int) $id)->delete();
+
+        return ApiResponse::success(null, 'Color set deleted successfully');
     }
 }

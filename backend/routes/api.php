@@ -27,6 +27,10 @@ use App\Http\Controllers\API\Backend\WatchAndBuyController;
 |--------------------------------------------------------------------------
 */
 
+// Public Admin Auth
+Route::post('admin-login', [AdminAuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:10,1');
+
 // Authenticated admin routes
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
@@ -116,6 +120,10 @@ Route::prefix('client')->group(function () {
     Route::post('verify-otp', [ClientAuthController::class, 'verifyOtp'])->middleware('throttle:10,1');
     Route::post('login', [ClientAuthController::class, 'login'])->middleware('throttle:10,1');
 
+    // Public & Guest Checkout and Tracking
+    Route::post('checkout', [ClientOrderController::class, 'checkout']);
+    Route::get('my-orders/{orderNo}', [ClientOrderController::class, 'show']);
+
     // Authenticated customer routes
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('me', [ClientAuthController::class, 'me']);
@@ -132,9 +140,7 @@ Route::prefix('client')->group(function () {
         Route::post('wishlist', [ClientWishlistController::class, 'store']);
         Route::delete('wishlist/{productId}', [ClientWishlistController::class, 'destroy']);
 
-        Route::post('checkout', [ClientOrderController::class, 'checkout'])->middleware('throttle:10,1');
         Route::get('my-orders', [ClientOrderController::class, 'index']);
-        Route::get('my-orders/{orderNo}', [ClientOrderController::class, 'show']);
         Route::post('my-orders/{orderNo}/cancel', [ClientOrderController::class, 'cancel']);
     });
 });

@@ -19,7 +19,16 @@ return [
 
     'allowed_methods' => ['POST', 'GET', 'DELETE', 'PUT', '*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'https://admin.dressnio.com'), 'https://dressnio.com', 'http://api.quicksms.xyz/smsapi', 'http://localhost:3000', 'http://localhost:1111', 'http://localhost:3001'],
+    'allowed_origins' => [
+        env('FRONTEND_URL', 'http://localhost:3000'),
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://localhost:1111',
+        'https://dressnio.com',
+        'https://admin.dressnio.com',
+    ],
 
     'allowed_origins_patterns' => [],
 

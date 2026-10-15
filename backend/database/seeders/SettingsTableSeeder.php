@@ -30,6 +30,6 @@ class SettingsTableSeeder extends Seeder
             Setting::firstOrCreate(['key' => $key], ['value' => $value]);
         }
 
-        $this->command->info('Settings ensured');
+        $this->command?->info('Settings ensured');
     }
 }

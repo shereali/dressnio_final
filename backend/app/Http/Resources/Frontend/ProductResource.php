@@ -11,6 +11,8 @@ class ProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         $firstPrice = $this->price;
+        $firstMedia = $this->media?->first();
+        $mediaUrl = $firstMedia ? ($firstMedia->media_url ?? $firstMedia->url ?? $firstMedia->file_name ?? $firstMedia->name) : ($this->image ?? null);
 
         return [
             'id'                  => $this->id,
@@ -18,13 +20,14 @@ class ProductResource extends JsonResource
             'slug'                => $this->slug,
             'cloth_type'          => $this->cloth_type,
             'fabric_type'         => $this->fabric_type,
-            'image'               => count($this->media) > 0 ? Helpers::publicPath($this->media->first()->name) : null,
-            'gallery'             => GalleryResource::collection($this->media),
+            'image'               => $mediaUrl ? Helpers::publicPath($mediaUrl) : null,
+            'gallery'             => GalleryResource::collection($this->media ?? []),
             'description'         => $this->description,
+            'categories'          => $this->categories ? $this->categories->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'slug' => $c->slug]) : [],
             'sizes'               => $this->is_size_visible ? SizeResource::collection($this->sizes->unique('standard')) : [],
             'colors'              => $this->is_color_visible ? ColorResource::collection($this->colors) : [],
             'price'               => $firstPrice ? new PriceResource($firstPrice) : null,
-            'prices'              => PriceResource::collection($this->prices),
+            'prices'              => PriceResource::collection($this->prices ?? []),
             'stock_available'     => $this->stock_available,
             'is_active'           => (bool) $this->is_active,
             'is_featured'         => (bool) $this->is_featured,

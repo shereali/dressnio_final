@@ -12,12 +12,13 @@ export const useAuthStore = defineStore("auth", {
           method: "POST",
           body: { ...credentials },
         });
-        if (data.value && data.value.status) {
-          storeToken.setToken(data.value?.token);
+        if (data.value && (data.value.status === "success" || data.value.status === true)) {
+          const authToken = data.value.data?.token || data.value.token;
+          storeToken.setToken(authToken);
           localStorage.removeItem("email");
           navigateTo("/customer");
           isLoading.value = false;
-        } else if (data.value && !data.value.status) {
+        } else if (data.value && (data.value.status === "error" || data.value.status === false)) {
           isLoading.value = false;
           toast.error(data.value.message || "Invalid credentials");
           if (data.value.errors) {
@@ -43,12 +44,13 @@ export const useAuthStore = defineStore("auth", {
           method: "POST",
           body: { ...credentials },
         });
-        if (data.value && data.value.status) {
-          storeToken.setToken(data.value?.token);
+        if (data.value && (data.value.status === "success" || data.value.status === true)) {
+          const authToken = data.value.data?.token || data.value.token;
+          storeToken.setToken(authToken);
           localStorage.removeItem("email");
-          navigateTo("/admin");
+          navigateTo("/admin/dashboard");
           utilityStore.isLoading = false;
-        } else if (data.value && !data.value.status) {
+        } else if (data.value && (data.value.status === "error" || data.value.status === false)) {
           utilityStore.isLoading = false;
           // Show toast notification for general error message
           toast.error(data.value.message || "Invalid credentials");

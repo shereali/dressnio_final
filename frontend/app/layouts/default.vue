@@ -2,7 +2,7 @@
   <div class="bg-brand-50">
     <Navbar />
     <slot></slot>
-    <NuxtSnackbar />
+    <SnackbarToast />
     <DressnioFooter />
   </div>
 </template>

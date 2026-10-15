@@ -18,12 +18,12 @@ watch(latestProducts, (newLatestProducts, oldLatestProducts) => {
   <div>
     <h3 class="text-xl font-semibold mb-2">Latest Products</h3>
     <!-- Display Latest Products -->
-    <LazyProduct :products="latestProducts" />
+    <Product :products="props.latestProducts || []" />
 
-    <div class="flex justify-center items-center">
+    <div class="flex justify-center items-center mt-6">
       <NuxtLink
-        to="#"
-        class="border border-brand p-2 px-10 bg-transparent text-brand font-bold hover:bg-brand hover:text-white transition-colors uppercase text-sm tracking-widest"
+        to="/shop"
+        class="dn-btn dn-btn-outline"
       >
         VIEW ALL PRODUCTS
       </NuxtLink>

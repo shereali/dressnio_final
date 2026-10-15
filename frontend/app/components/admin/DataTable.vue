@@ -107,14 +107,14 @@ const {
   pending,
   refresh,
 } = await useLazyAsyncData(
-  "dataList",
+  `dataTable_${apiEndpoint.replace(/[^a-zA-Z0-9]/g, '_')}`,
   () =>
     ($fetch as any)(apiEndpoint + searchStatus.value, {
       baseURL: config.public.apiBase,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token.getToken,
+        ...(token.getToken ? { Authorization: "Bearer " + token.getToken } : {}),
       },
       query: {
         q: search.value,
@@ -125,17 +125,22 @@ const {
       },
     }),
   {
+    server: false,
     default: () => [],
     watch: [page, search, searchStatus, pageCount, sort],
   }
 );
 // Data
 
-pageTotal = computed(() => {
-  return dataList.value?.data?.length;
+const rowsList = computed(() => {
+  if (Array.isArray(dataList.value)) return dataList.value;
+  if (Array.isArray(dataList.value?.data)) return dataList.value.data;
+  return [];
 });
 
-// console.log("page count", pageCount.value);
+pageTotal = computed(() => {
+  return rowsList.value.length;
+});
 
 const refreshDataTable = () => {
   refresh();
@@ -144,20 +149,21 @@ const refreshDataTable = () => {
 const q = ref("");
 
 const filteredRows = computed(() => {
-  if (dataList.value?.data?.length > 0) {
-    if (!q.value) {
-      return dataList.value?.data.slice(
-        (page.value - 1) * pageCount.value,
-        page.value * pageCount.value
-      );
-    }
-
-    return dataList.value?.data.filter((item: object) => {
-      return Object.values(item).some((value) => {
-        return String(value).toLowerCase().includes(q.value.toLowerCase());
-      });
-    });
+  const list = rowsList.value;
+  if (!list.length) return [];
+  if (!q.value) {
+    return list.slice(
+      (page.value - 1) * pageCount.value,
+      page.value * pageCount.value
+    );
   }
+
+  return list.filter((item: any) => {
+    if (!item || typeof item !== "object") return false;
+    return Object.values(item).some((value) => {
+      return String(value).toLowerCase().includes(q.value.toLowerCase());
+    });
+  });
 });
 
 // const showDataPerPage = async (page) => {

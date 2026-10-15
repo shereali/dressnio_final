@@ -14,31 +14,32 @@ class CategoryTableSeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            'Kurta Sets',
-            'Shrug Sets',
-            'Maxis',
-            'Lehengas',
-            'Suit Sets',
-            'Dresses',
-            'Tops & Co-ord Sets',
-            'Sarees',
-            'Raw Fabrics',
-            'Unstitched Suits',
-            'Dupattas',
-            'Unstitched Suit Sets',
+            ['name' => 'Kurta Sets', 'image' => '/img/category-kurta.jpg'],
+            ['name' => 'Shrug Sets', 'image' => '/img/category-shrug.jpg'],
+            ['name' => 'Maxis', 'image' => '/img/category-maxi.jpg'],
+            ['name' => 'Lehengas', 'image' => '/img/category-lehenga.jpg'],
+            ['name' => 'Suit Sets', 'image' => '/img/category-suit.jpg'],
+            ['name' => 'Dresses', 'image' => '/img/category-dress.jpg'],
+            ['name' => 'Tops & Co-ord Sets', 'image' => '/img/category-top.jpg'],
+            ['name' => 'Sarees', 'image' => '/img/category-saree.jpg'],
+            ['name' => 'Raw Fabrics', 'image' => '/img/category-fabric.jpg'],
+            ['name' => 'Unstitched Suits', 'image' => '/img/category-unstitched.jpg'],
         ];
 
-        foreach ($categories as $name) {
-            Category::firstOrCreate(
-                ['slug' => Str::slug($name)],
+        foreach ($categories as $idx => $item) {
+            Category::updateOrCreate(
+                ['slug' => Str::slug($item['name'])],
                 [
-                    'name'       => $name,
-                    'is_active'  => true,
-                    'created_by' => 1,
+                    'name'       => $item['name'],
+                    'image'      => $item['image'],
+                    'order'      => $idx + 1,
+                    'is_active'   => true,
+                    'is_featured' => true,
+                    'created_by'  => 1,
                 ]
             );
         }
 
-        $this->command->info(count($categories) . ' categories ensured');
+        $this->command?->info(count($categories) . ' categories ensured');
     }
 }

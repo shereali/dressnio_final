@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Backend;
 
-use Illuminate\Support\Str;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class ProductRequest extends FormRequest
 {
@@ -17,31 +17,27 @@ class ProductRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'name' => 'required|string'
+            'name' => 'required|string|max:255',
         ];
     }
 
-    public function prepareForValidation()
+    public function prepareForValidation(): void
     {
         $this->merge([
-            'slug'                => Str::slug($this->name),
-            'is_active'           => $this->is_active           == 'on' ? true : false,
-            'is_featured'         => $this->is_featured         == 'on' ? true : false,
-            'new_arrival'         => $this->new_arrival         == 'on' ? true : false,
-            'best_seller'         => $this->best_seller         == 'on' ? true : false,
-            'stock_in'            => $this->stock_in            == 'on' ? true : false,
-            'stock_out'           => $this->stock_out           == 'on' ? true : false,
-            'highlight'           => $this->highlight           == 'on' ? true : false,
-            'fashionist_choice'   => $this->fashionist_choice   == 'on' ? true : false,
-            'has_color_variation' => $this->has_color_variation == 'on' ? true : false,
-            'is_size_visible'     => $this->is_size_visible     == 'on' ? true : false,
-            'is_color_visible'    => $this->is_color_visible    == 'on' ? true : false,
+            'slug'                => $this->slug ?: Str::slug($this->name),
+            'is_active'           => $this->has('is_active') ? $this->boolean('is_active') : true,
+            'is_featured'         => $this->boolean('is_featured'),
+            'new_arrival'         => $this->boolean('new_arrival'),
+            'best_seller'         => $this->boolean('best_seller'),
+            'highlight'           => $this->boolean('highlight'),
+            'fashionist_choice'   => $this->boolean('fashionist_choice'),
+            'has_color_variation' => $this->boolean('has_color_variation'),
+            'is_size_visible'     => $this->boolean('is_size_visible'),
+            'is_color_visible'    => $this->boolean('is_color_visible'),
         ]);
     }
 }

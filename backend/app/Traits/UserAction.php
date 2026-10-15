@@ -4,11 +4,9 @@ use Auth;
 
 trait UserAction
 {
-    public static function boot()
+    public static function bootUserAction(): void
     {
-       parent::boot();
-       static::creating(function($model)
-       {
+        static::creating(function ($model) {
            $user = Auth::user();
            if ($user) {
                $model->created_by = $user->id;

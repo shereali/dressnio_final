@@ -1,29 +1,27 @@
-<script lang="ts" setup></script>
-
 <template>
-  <div class="flex h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
-    <!-- Sidebar -->
+  <div class="flex h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 overflow-hidden font-sans">
+    <!-- Sidebar Navigation -->
     <AdminSidebar />
 
-    <!-- Content -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Content Workspace -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       <!-- Top Navbar -->
-      <header class="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 shadow-sm z-10 transition-colors duration-300">
-        <!-- Add your top navbar content here -->
-        <AdminHeader />
-      </header>
+      <AdminHeader />
 
-      <!-- Main Content -->
-      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-950 p-8 transition-colors duration-300">
-        <AdminBreadcrumb />
-        <!-- Page Title -->
-        <AdminPageTitle />
-
-        <!-- Your page content goes here -->
-        <slot />
+      <!-- Main Content Container (Full Width) -->
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/70 dark:bg-gray-950/70 p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+        <div class="w-full space-y-6">
+          <AdminBreadcrumb />
+          <AdminPageTitle />
+          <slot />
+        </div>
       </main>
     </div>
+
+    <!-- Admin Notification Toasts -->
+    <SnackbarToast />
   </div>
 </template>
 
-<style scoped></style>
+<script setup>
+</script>

@@ -66,12 +66,16 @@ await getItems.items("/color", null).then((res) => {
 
 async function search(q) {
   store.isLoading = true;
-  let { data, error, refresh, pending } = useAsyncData("search", () =>
-    store.client(api + "/category?q=" + q)
-  );
-
-  store.isLoading = false;
-  return data.value.data;
+  try {
+    const { data } = await useApiFetch(`/category`, {
+      params: { q },
+    });
+    store.isLoading = false;
+    return data.value?.data || [];
+  } catch (err) {
+    store.isLoading = false;
+    return [];
+  }
 }
 
 let kameez_sizes = computed(() => {
