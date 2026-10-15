@@ -10,7 +10,7 @@ services:
       dockerfile: Dockerfile.frontend
       args:
         NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-https://dressnio.softcredible.com/api}
-    container_name: ${APP_NAME:-dressnio}-frontend-1
+    container_name: dressnio-frontend-1
     restart: unless-stopped
     networks:
       - internal
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: ${APP_NAME:-dressnio}-backend-1
+    container_name: dressnio-backend-1
     restart: unless-stopped
     env_file: .env
     depends_on:
@@ -40,7 +40,7 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: ${APP_NAME:-dressnio}-db-1
+    container_name: dressnio-db-1
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-dressnio}
