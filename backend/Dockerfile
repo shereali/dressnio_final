@@ -15,7 +15,8 @@ COPY backend/. .
 COPY --from=vendor /app/vendor ./vendor
 COPY backend/deploy/nginx.conf /etc/nginx/http.d/default.conf
 COPY backend/deploy/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh \
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache storage/logs \
+    && chmod +x /entrypoint.sh \
     && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 80
