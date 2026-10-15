@@ -9,6 +9,13 @@ SNAPSHOT_FILE="$BACKUP_DIR/pre_deploy_${TIMESTAMP}.sql.gz"
 
 cd "$APP_DIR"
 
+# Source environment variables if .env exists
+if [ -f .env ]; then
+    set -a
+    . .env
+    set +a
+fi
+
 # 1. Fix Git dubious ownership security error in CI/CD environments
 git config --global --add safe.directory "$PWD" 2>/dev/null || true
 
@@ -35,9 +42,11 @@ echo "=== [3/6] Building and launching containers ==="
 docker compose up -d --build --remove-orphans
 
 echo "=== [4/6] Waiting for database readiness & running migrations ==="
-if docker compose ps db 2>/dev/null | grep -q "Up"; then
+if docker compose ps db 2>/dev/null | grep -q "healthy"; then
+    echo ">>> Database is healthy and responsive!"
+elif docker compose ps db 2>/dev/null | grep -q "Up"; then
     for i in $(seq 1 30); do
-        if docker compose exec -T db mysqladmin ping -h 127.0.0.1 -u "${DB_USERNAME:-${APP_USER}}" -p"${DB_PASSWORD}" --silent 2>/dev/null; then
+        if docker compose exec -T db mysqladmin ping -h 127.0.0.1 -u root -p"${DB_ROOT_PASSWORD}" --silent 2>/dev/null; then
             echo ">>> Database is fully responsive!"
             break
         fi
@@ -48,6 +57,7 @@ fi
 if docker compose ps backend 2>/dev/null | grep -q "Up"; then
     echo ">>> Running safe production migrations (non-destructive)..."
     docker compose exec -T backend php artisan migrate --force
+    docker compose exec -T backend php artisan db:seed --force || true
     docker compose exec -T backend php artisan config:cache || true
     docker compose exec -T backend php artisan route:cache || true
     docker compose exec -T backend php artisan view:cache || true
