@@ -64,7 +64,7 @@ const formattedPrice = computed(() => {
 
 const mediaList = computed(() => {
   if (product.value.media && product.value.media.length > 0) {
-    return product.value.media.map(m => m.url || m.media_url || '/brand/hero-chic.jpg');
+    return product.value.media.map(m => m.url || m.media_url || m.file_url || '/brand/hero-chic.jpg');
   }
   if (product.value.image) {
     return [product.value.image];

@@ -48,7 +48,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::apiResources([
         'category'     => CategoryController::class,
+        'categories'   => CategoryController::class,
         'products'     => ProductController::class,
+        'product'      => ProductController::class,
         'size'         => SizeController::class,
         'color'        => ColorController::class,
         'media'        => MediaController::class,
@@ -60,7 +62,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         'slider'       => SliderController::class,
         'testimonial'  => TestimonialController::class,
         'orders'       => AdminOrderController::class,
+        'order'        => AdminOrderController::class,
         'customers'    => CustomerController::class,
+        'customer'     => CustomerController::class,
         'popups'       => PopupController::class,
     ]);
 

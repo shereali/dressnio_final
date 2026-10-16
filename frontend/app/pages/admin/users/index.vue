@@ -1,47 +1,27 @@
 <script setup>
-// const { crudAction } = useApi();
-// const data = crudAction("user-list");
-// console.log("api", data);
-// onMounted(() => {
-//   const { data } = useFetch("http://localhost:8000/api/user-list");
-//   console.log("user list", data);
-// });
-
-// const { data } = useFetch("http://localhost:8000/api/user-list");
-// console.log("user list", data.value[0].name);
-
-// const crud = useCrud();
-
-let token = ref();
-
-let form = reactive({
-  name: "shereali",
-  email: "sherealis@gmail.com",
-  mobile_no: "01749240904",
-  password: "123456",
+definePageMeta({
+  layout: "admin",
+  middleware: ["auth"],
 });
-import axios from "axios";
 
-const client = useSanctumClient();
+const columns = [
+  { key: "id", label: "ID", sortable: true },
+  { key: "name", label: "Admin Name", sortable: true },
+  { key: "email", label: "Email Address", sortable: true },
+];
 
-const handleCeate = async () => {
-  const api_endpoint = "http://localhost:8000";
-
-  const data = client(api_endpoint + "/api/create-user", {
-    method: "POST",
-    body: {
-      ...form,
-    },
-  }).catch((error) => {
-    console.log(error.statusCode, error.data);
-  });
-};
+const propsItem = ref({
+  apiEndpoint: "/user-list",
+  columns: columns,
+  pageTitle: "System Administrators",
+  pageBackLink: "/admin/dashboard",
+});
 </script>
 
 <template>
-  <div>Page: foo</div>
-  <UButton tye="submit" @click="handleCeate">create user</UButton>
+  <div>
+    <AdminDataTable :apiInfo="propsItem" />
+  </div>
 </template>
 
 <style scoped></style>
-

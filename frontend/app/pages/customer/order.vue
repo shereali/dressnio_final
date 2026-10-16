@@ -1,16 +1,82 @@
 <template>
   <CustomerLayout>
-    <div class="container mx-auto p-4">
-      <h1 class="text-3xl font-bold mb-4">Order History</h1>
+    <div class="space-y-6">
+      <!-- Page Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-stone-100">
+        <div>
+          <h1 class="text-2xl font-extrabold text-stone-900">Order History</h1>
+          <p class="text-xs sm:text-sm text-stone-500 mt-1">
+            Track your parcel status, view invoices, or cancel pending orders.
+          </p>
+        </div>
 
-      <!-- Responsive Order List -->
+        <NuxtLink
+          to="/track-order"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs sm:text-sm font-semibold transition-colors self-start sm:self-auto"
+        >
+          <Icon name="solar:radar-2-bold" class="w-4 h-4 text-rose-500" />
+          <span>Quick Parcel Tracker</span>
+        </NuxtLink>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          v-for="tab in filterTabs"
+          :key="tab.value"
+          @click="activeTab = tab.value"
+          class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap"
+          :class="[
+            activeTab === tab.value
+              ? 'bg-stone-900 text-white shadow-sm'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200/80 hover:text-stone-900'
+          ]"
+        >
+          {{ tab.label }}
+          <span
+            v-if="tab.count !== null"
+            class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+            :class="activeTab === tab.value ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-700'"
+          >
+            {{ tab.count }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="pending" class="py-16 text-center">
+        <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-rose-500 mx-auto mb-2" />
+        <p class="text-sm text-stone-500">Fetching your orders...</p>
+      </div>
+
+      <!-- Empty State -->
       <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        v-else-if="filteredOrders.length === 0"
+        class="text-center py-16 px-4 rounded-2xl bg-stone-50 border border-stone-200/70"
       >
+        <div class="w-16 h-16 rounded-2xl bg-rose-100/60 text-rose-500 flex items-center justify-center mx-auto mb-3">
+          <Icon name="solar:box-minimalistic-bold" class="w-8 h-8" />
+        </div>
+        <h3 class="font-bold text-stone-800 text-lg">No orders found</h3>
+        <p class="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
+          {{ activeTab === 'all' ? "You haven't placed any orders yet. Discover our latest fashion collection." : "No orders found in this filter category." }}
+        </p>
+        <NuxtLink
+          to="/shop"
+          class="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium transition-colors shadow-sm"
+        >
+          <span>Explore Catalog</span>
+          <Icon name="solar:arrow-right-linear" class="w-4 h-4" />
+        </NuxtLink>
+      </div>
+
+      <!-- Orders Grid -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CustomerOrderCard
-          v-for="order in orders"
+          v-for="order in filteredOrders"
           :key="order.id"
           :order="order"
+          @order-cancelled="refresh"
         />
       </div>
     </div>
@@ -18,139 +84,50 @@
 </template>
 
 <script setup>
-const orders = [
+import { ref, computed } from "vue";
+
+definePageMeta({
+  middleware: "auth",
+});
+
+const activeTab = ref("all");
+
+const { data: ordersResponse, pending, refresh } = await useApiFetch("/client/my-orders", {
+  server: false,
+  lazy: true,
+});
+
+const orders = computed(() => {
+  const d = ordersResponse.value?.data;
+  return Array.isArray(d) ? d : [];
+});
+
+const filteredOrders = computed(() => {
+  if (activeTab.value === "all") return orders.value;
+  return orders.value.filter((o) => (o.order_status || "").toLowerCase() === activeTab.value);
+});
+
+const filterTabs = computed(() => [
+  { label: "All Orders", value: "all", count: orders.value.length },
   {
-    id: 1,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Delivered",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-1.webp",
-    },
+    label: "Pending",
+    value: "pending",
+    count: orders.value.filter((o) => (o.order_status || "").toLowerCase() === "pending").length,
   },
   {
-    id: 2,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Pending",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-2.webp",
-    },
+    label: "Processing",
+    value: "processing",
+    count: orders.value.filter((o) => (o.order_status || "").toLowerCase() === "processing").length,
   },
   {
-    id: 3,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-3.webp",
-    },
+    label: "Shipped",
+    value: "shipped",
+    count: orders.value.filter((o) => (o.order_status || "").toLowerCase() === "shipped").length,
   },
   {
-    id: 4,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-4.webp",
-    },
+    label: "Delivered",
+    value: "delivered",
+    count: orders.value.filter((o) => (o.order_status || "").toLowerCase() === "delivered").length,
   },
-  {
-    id: 5,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-5.webp",
-    },
-  },
-  {
-    id: 6,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-6.webp",
-    },
-  },
-  {
-    id: 7,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-7.webp",
-    },
-  },
-  {
-    id: 8,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-8.webp",
-    },
-  },
-  {
-    id: 9,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-9.webp",
-    },
-  },
-  {
-    id: 10,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-10.webp",
-    },
-  },
-  {
-    id: 11,
-    date: "2023-01-15",
-    total: 120.5,
-    status: "Shipped",
-    product: {
-      name: "Product A",
-      size: "Medium",
-      color: "Blue",
-      image: "/images/product/p-11.webp",
-    },
-  },
-  // Add more orders as needed
-];
+]);
 </script>

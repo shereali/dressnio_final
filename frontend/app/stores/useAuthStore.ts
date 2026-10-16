@@ -69,6 +69,38 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
+    async verifyOtp(payload: any, form: any, isLoading: any) {
+      try {
+        const storeToken = useTokenStore();
+        const { data, error } = await useApiFetch("/client/verify-otp", {
+          method: "POST",
+          body: { ...payload },
+        });
+        if (data.value && (data.value.status === "success" || data.value.status === true)) {
+          const authToken = data.value.data?.token || data.value.token;
+          storeToken.setToken(authToken);
+          localStorage.removeItem("mobile_no");
+          localStorage.removeItem("email");
+          navigateTo("/customer");
+          isLoading.value = false;
+        } else if (data.value && (data.value.status === "error" || data.value.status === false)) {
+          isLoading.value = false;
+          toast.error(data.value.message || "Invalid or expired OTP code");
+          if (data.value.errors) {
+            formError(data.value.errors, form);
+          }
+        }
+        if (error.value) {
+          isLoading.value = false;
+          toast.error(error.value.data?.message || "Invalid or expired OTP code");
+          formError(error.value.data?.errors, form);
+        }
+      } catch (error) {
+        isLoading.value = false;
+        throw error;
+      }
+    },
+
     async sendOtp(credentials: any) {
       const response = await useApiFetch("/client/send-otp", {
         method: "POST",
@@ -77,43 +109,39 @@ export const useAuthStore = defineStore("auth", {
       return response;
     },
 
-    async sendSms() {
-      const response = await fetch("http://api.quicksms.xyz/smsapi", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          api_key: "4ff8cc2cea2b5c09",
-          senderid: "12345",
-          type: "text",
-          msg: "Thank you for using dressnio",
-          contacts: "8801749240901",
-        }),
-      });
-      return await response.json();
-    },
-
-    async logout(redirectPath: string = "/login") {
+    async customerLogout(redirectPath: string = "/login") {
       const utilityStore = useUtilityStore();
+      const token = useTokenStore();
       try {
-        const token = useTokenStore();
-        const config = useRuntimeConfig();
-        await useLazyFetch(config.public.apiBase + "/logout", {
+        await useApiFetch("/client/logout", {
           method: "POST",
-          headers: { Accept: "application/json" },
         });
+      } catch (error) {
+        console.warn("Client logout API call failed, clearing local session", error);
+      } finally {
         token.removeToken();
         utilityStore.isLoading = false;
         if (redirectPath) {
           navigateTo(redirectPath);
         }
+      }
+    },
+
+    async logout(redirectPath: string = "/login") {
+      const utilityStore = useUtilityStore();
+      const token = useTokenStore();
+      try {
+        await useApiFetch("/logout", {
+          method: "POST",
+        }).catch(() => useApiFetch("/client/logout", { method: "POST" }));
       } catch (error) {
+        console.warn("Logout API call failed, clearing local session", error);
+      } finally {
+        token.removeToken();
         utilityStore.isLoading = false;
         if (redirectPath) {
           navigateTo(redirectPath);
         }
-        throw error;
       }
     },
   },

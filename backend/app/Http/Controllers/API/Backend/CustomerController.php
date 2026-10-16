@@ -41,4 +41,39 @@ class CustomerController extends Controller
 
         return ApiResponse::success($customer);
     }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $customer = Customer::find($id);
+
+        if (! $customer) {
+            return ApiResponse::notFound('Customer not found');
+        }
+
+        $request->validate([
+            'name'      => 'nullable|string|max:255',
+            'email'     => 'nullable|email|unique:customers,email,' . $customer->id,
+            'mobile_no' => 'nullable|string|regex:/^01[3-9]\d{8}$/|unique:customers,mobile_no,' . $customer->id,
+            'is_active' => 'nullable|boolean',
+            'address'   => 'nullable|string',
+            'city'      => 'nullable|string',
+        ]);
+
+        $customer->update($request->only(['name', 'email', 'mobile_no', 'is_active', 'address', 'city']));
+
+        return ApiResponse::success($customer, 'Customer updated successfully');
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $customer = Customer::find($id);
+
+        if (! $customer) {
+            return ApiResponse::notFound('Customer not found');
+        }
+
+        $customer->delete();
+
+        return ApiResponse::success(null, 'Customer deleted successfully');
+    }
 }

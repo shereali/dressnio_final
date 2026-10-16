@@ -28,7 +28,8 @@ const handleOtpSending = async () => {
 
   if (data?.value) {
     isLoading.value = false;
-    localStorage.setItem("email", data?.value?.email);
+    localStorage.setItem("mobile_no", state.mobile_no);
+    localStorage.setItem("email", state.mobile_no);
     router.push("/otp");
   }
   if (error.value) {

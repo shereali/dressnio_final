@@ -15,19 +15,18 @@ const validate = (state) => {
 
 const handleLogin = async () => {
   isLoading.value = true;
-  const credentials = {
-    email: localStorage.getItem("email"),
-    password: state.otp,
+  const mobile = localStorage.getItem("mobile_no") || localStorage.getItem("email") || "";
+  const payload = {
+    mobile_no: mobile,
+    otp: state.otp,
   };
 
-  form.value.clear();
+  form.value?.clear?.();
 
   try {
-    const { data, error } = await auth.login(credentials, form, isLoading);
-    localStorage.removeItem("email");
+    await auth.verifyOtp(payload, form, isLoading);
   } catch (error) {
     isLoading.value = false;
-    throw error;
   }
 };
 </script>

@@ -102,4 +102,5 @@ export const useCartStore = defineStore("cart", {
       this.isOpen = false; // Close the cart after checkout
     },
   },
+  persist: true,
 });
