@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@fontsource-variable/playfair-display": "^5.3.0",
     "@formkit/auto-animate": "^0.8.1",
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/icon": "^2.2.0",

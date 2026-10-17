@@ -19,8 +19,8 @@ export default defineNuxtConfig({
 
   css: [
     "@fontsource-variable/dm-sans/index.css",
-    "@fontsource/instrument-serif/400.css",
-    "@fontsource/instrument-serif/400-italic.css",
+    "@fontsource-variable/playfair-display/index.css",
+    "@fontsource-variable/playfair-display/wght-italic.css",
     "@fontsource/hind-siliguri/400.css",
     "@fontsource/hind-siliguri/500.css",
     "@fontsource/hind-siliguri/600.css",

@@ -2,7 +2,7 @@
    Brand colours stay as defined in the theme (indigo #4D4DDB family). */
 
 :root {
-  --font-display: "Instrument Serif", "Hind Siliguri", Georgia, serif;
+  --font-display: "Playfair Display Variable", "Hind Siliguri", Georgia, serif;
   --font-body: "DM Sans Variable", "Hind Siliguri", system-ui, sans-serif;
   --magenta: #c21ce0;
   --magenta-deep: #7a1fd1;
@@ -27,9 +27,9 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.08;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 body {
