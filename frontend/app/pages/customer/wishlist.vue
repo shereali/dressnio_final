@@ -63,8 +63,8 @@
 </template>
 
 <script setup>
+const snackbar = useSnackbar();
 import { computed } from "vue";
-import { toast } from "vue3-toastify";
 
 definePageMeta({
   middleware: "auth",
@@ -87,13 +87,13 @@ const removeFromWishlist = async (productId) => {
     });
 
     if (error.value) {
-      toast.error("Failed to remove item from wishlist");
+      snackbar.add({ type: "error", text: "Failed to remove item from wishlist" });
     } else {
-      toast.success("Removed from wishlist");
+      snackbar.add({ type: "success", text: "Removed from wishlist" });
       refresh();
     }
   } catch (err) {
-    toast.error("Error removing item");
+    snackbar.add({ type: "error", text: "Error removing item" });
   }
 };
 </script>

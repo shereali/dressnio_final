@@ -12,7 +12,9 @@ class Payment extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'amount' => 'float',
+        'amount'  => 'float',
+        'payload' => 'array',
+        'paid_at' => 'datetime',
     ];
 
     public function order()

@@ -23,7 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'customer' => \App\Http\Middleware\CustomerMiddleware::class,
+            'customer'  => \App\Http\Middleware\CustomerMiddleware::class,
+            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'ability'   => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
         ]);
 
         // CORS for the Nuxt storefront and admin apps.
@@ -50,6 +52,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::unauthorized('Please log in to continue');
+            }
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error('You do not have access to this', 403);
             }
         });
 

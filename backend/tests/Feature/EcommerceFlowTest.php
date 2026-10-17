@@ -73,6 +73,7 @@ class EcommerceFlowTest extends TestCase
                     'id'       => $product->id,
                     'name'     => $product->name,
                     'quantity' => 1,
+                    'size'     => $product->sizes()->first()?->standard,
                     'price'    => (float) ($product->price->price ?? 1000),
                 ],
             ],
@@ -99,7 +100,7 @@ class EcommerceFlowTest extends TestCase
         $this->assertEquals($initialStock - 1, $newStock, 'Stock must decrement atomically after checkout');
 
         // 4. Test Live Order Tracking
-        $trackingRes = $this->getJson("/api/client/my-orders/{$orderNo}");
+        $trackingRes = $this->getJson("/api/client/my-orders/{$orderNo}?mobile_no=01712345678");
         $trackingRes->assertStatus(200)
                     ->assertJsonPath('data.order_no', $orderNo)
                     ->assertJsonPath('data.order_status', 'pending');

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API\Backend;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\PaymentMethods;
+use App\Services\SmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -95,6 +97,10 @@ class SettingController extends Controller
             return Setting::whereIn('key', $keys)->pluck('value', 'key');
         });
 
-        return ApiResponse::success($settings);
+        // Payment methods change often and carry numbers customers pay to, so they skip the cache
+        $payload = $settings->toArray();
+        $payload['payment_methods'] = PaymentMethods::enabled();
+
+        return ApiResponse::success($payload);
     }
 }

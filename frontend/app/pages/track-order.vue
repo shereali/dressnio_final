@@ -1,159 +1,353 @@
+<script setup>
+// Track a parcel with the order number and the phone number it was placed with.
+useSeoMeta({ title: "Track your order | Dressnio", robots: "noindex" });
+
+const route = useRoute();
+const config = useRuntimeConfig();
+const token = useTokenStore();
+const snackbar = useSnackbar();
+
+const orderNo = ref(String(route.query.order_no || ""));
+const phone = ref(String(route.query.mobile_no || ""));
+const order = ref(null);
+const loading = ref(false);
+const message = ref("");
+const busy = ref("");
+
+const authHeaders = () => (token.isAuthenticated ? { Authorization: `Bearer ${token.getToken}` } : {});
+const body = () => ({ mobile_no: phone.value.replace(/\s|-/g, "") });
+
+const steps = [
+  { key: "pending", title: "Order placed", icon: "solar:cart-check-bold" },
+  { key: "confirmed", title: "Confirmed", icon: "solar:verified-check-bold" },
+  { key: "processing", title: "Being packed", icon: "solar:box-bold" },
+  { key: "shipped", title: "With the courier", icon: "solar:delivery-bold" },
+  { key: "delivered", title: "Delivered", icon: "solar:home-smile-bold" },
+];
+const rank = { pending: 0, confirmed: 1, processing: 2, shipped: 3, delivered: 4 };
+const stopped = computed(() => ["cancelled", "returned"].includes(order.value?.order_status));
+const reached = (key) => !stopped.value && (rank[order.value?.order_status] ?? 0) >= rank[key];
+const noteFor = (key) => [...(order.value?.delivery_timeline || [])].reverse().find((t) => t.status === key)?.note || "";
+
+const find = async () => {
+  message.value = "";
+  if (!orderNo.value.trim()) {
+    message.value = "Enter your order number.";
+    return;
+  }
+  if (!token.isAuthenticated && !/^(\+?88)?01[3-9]\d{8}$/.test(phone.value.replace(/\s|-/g, ""))) {
+    message.value = "Enter the phone number you ordered with.";
+    return;
+  }
+  loading.value = true;
+  try {
+    const res = await $fetch(`${config.public.apiBase}/client/my-orders/${encodeURIComponent(orderNo.value.trim())}`, {
+      params: body(),
+      headers: { Accept: "application/json", ...authHeaders() },
+    });
+    order.value = res?.data || null;
+  } catch (e) {
+    order.value = null;
+    message.value = e?.data?.message || "We could not find that order. Check the order number and phone number.";
+  } finally {
+    loading.value = false;
+  }
+};
+
+const post = async (path, key, okText) => {
+  busy.value = key;
+  try {
+    const res = await $fetch(`${config.public.apiBase}/client/my-orders/${order.value.order_no}/${path}`, { method: "POST", body: body(), headers: { Accept: "application/json", ...authHeaders() } });
+    if (res?.data?.payment_url) {
+      window.location.href = res.data.payment_url;
+      return;
+    }
+    snackbar.add({ type: "success", text: okText });
+    await find();
+  } catch (e) {
+    snackbar.add({ type: "error", text: e?.data?.message || "That did not work. Try again.", duration: 6000 });
+  } finally {
+    busy.value = "";
+  }
+};
+
+const cancel = () => {
+  if (confirm(`Cancel order #${order.value.order_no}?`)) post("cancel", "cancel", "Order cancelled");
+};
+const payAgain = () => post("pay", "pay", "Payment started");
+
+const canCancel = computed(() => order.value?.order_status === "pending" && !["paid", "verifying"].includes(order.value?.payment_status));
+const canPay = computed(() => order.value?.order_status === "pending" && order.value?.payment_status === "unpaid" && order.value?.payment_method === "card");
+const date = (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const payText = { unpaid: "Not paid yet", verifying: "We are checking your payment", paid: "Paid", refunded: "Refunded", failed: "Failed" };
+
+onMounted(() => {
+  if (orderNo.value && (phone.value || token.isAuthenticated)) find();
+});
+</script>
+
 <template>
-  <div class="dn-container" style="padding-top: 3rem; padding-bottom: 5rem; max-width: 800px;">
-    <!-- Tracking Header -->
-    <div style="text-align: center; margin-bottom: 2.5rem;">
-      <div style="width: 64px; height: 64px; background: var(--dn-primary-light); color: var(--dn-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-        <Icon name="solar:box-minimalistic-bold" style="font-size: 2rem;" />
-      </div>
-      <h1 style="font-size: 2rem; font-weight: 800; color: var(--dn-tertiary);">Track Your Parcel</h1>
-      <p style="color: var(--dn-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">
-        Enter your Order Tracking Number or Mobile Number below
-      </p>
-    </div>
+  <div class="tk">
+    <div class="pm-wrap narrow">
+      <h1>Track your order</h1>
+      <p class="sub">Use the order number from your confirmation and the phone number you ordered with.</p>
 
-    <!-- Search Box -->
-    <div class="dn-card dn-card-glass" style="padding: 1.5rem; margin-bottom: 2.5rem;">
-      <form @submit.prevent="fetchOrder" style="display: flex; gap: 0.75rem;">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="dn-input"
-          placeholder="Enter Order # (e.g. DN-260824-XXXX)"
-          required
-          style="flex-grow: 1;"
-        />
-        <button type="submit" class="dn-btn dn-btn-primary" :disabled="isLoading">
-          <Icon v-if="isLoading" name="svg-spinners:180-ring-with-bg" />
-          <Icon v-else name="solar:magnifer-linear" />
-          <span>Track</span>
-        </button>
+      <form class="finder" novalidate @submit.prevent="find">
+        <label>
+          <span>Order number</span>
+          <input v-model="orderNo" type="text" autocomplete="off" placeholder="DN-260824-AB12" />
+        </label>
+        <label v-if="!token.isAuthenticated">
+          <span>Phone number</span>
+          <input v-model="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01712345678" />
+        </label>
+        <button type="submit" class="pm-btn pm-btn-primary" :disabled="loading">{{ loading ? "Looking" : "Track order" }}</button>
       </form>
-    </div>
+      <p v-if="message" class="msg" role="alert">{{ message }}</p>
 
-    <p v-if="notFound" role="alert" style="text-align:center;color:#c0285a;margin-bottom:1.5rem">We could not find that order. Check the order number from your confirmation and try again.</p>
-
-    <!-- Order Timeline Result -->
-    <div v-if="order" class="dn-card" style="padding: 2rem;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--dn-border-light); padding-bottom: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <span style="font-size: 0.8rem; font-weight: 700; color: var(--dn-text-muted); text-transform: uppercase;">Order Number</span>
-          <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--dn-primary);">#{{ order.order_no }}</h2>
-          <span style="font-size: 0.85rem; color: var(--dn-text-muted);">Placed on {{ new Date(order.created_at).toLocaleDateString() }}</span>
-        </div>
-
-        <div style="text-align: right;">
-          <span class="dn-status-badge" :class="`dn-status-${order.order_status}`" style="font-size: 0.85rem; padding: 0.35rem 0.85rem; text-transform: uppercase;">
-            {{ order.order_status }}
-          </span>
-          <div v-if="order.steadfast_tracking_code" style="font-size: 0.8rem; color: var(--dn-text-muted); margin-top: 0.35rem;">
-            SteadFast: <strong>{{ order.steadfast_tracking_code }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step Timeline -->
-      <div style="margin: 2.5rem 0 2rem 1rem;">
-        <div
-          v-for="(step, idx) in steps"
-          :key="idx"
-          style="display: flex; gap: 1.25rem; position: relative; padding-bottom: 1.75rem;"
-        >
-          <!-- Vertical Line -->
-          <div
-            v-if="idx < steps.length - 1"
-            style="position: absolute; top: 28px; left: 14px; width: 2px; height: calc(100% - 20px); background: var(--dn-border);"
-            :style="{ background: isStepCompleted(step.key) ? 'var(--dn-primary)' : 'var(--dn-border)' }"
-          ></div>
-
-          <!-- Step Dot -->
-          <div
-            style="width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2; flex-shrink: 0; font-size: 0.9rem;"
-            :style="{
-              backgroundColor: isStepCompleted(step.key) ? 'var(--dn-primary)' : '#E2E8F0',
-              color: isStepCompleted(step.key) ? '#ffffff' : '#64748B',
-            }"
-          >
-            <Icon :name="step.icon" />
-          </div>
-
-          <!-- Step Info -->
+      <section v-if="order" class="result">
+        <header>
           <div>
-            <strong style="font-size: 0.95rem; display: block; color: var(--dn-tertiary);">{{ step.title }}</strong>
-            <p style="font-size: 0.85rem; color: var(--dn-text-muted); margin-top: 0.15rem;">{{ step.description }}</p>
+            <h2>#{{ order.order_no }}</h2>
+            <p class="sub">Placed {{ date(order.created_at) }}</p>
           </div>
-        </div>
-      </div>
+          <span class="chip" :class="order.order_status">{{ order.order_status }}</span>
+        </header>
 
-      <!-- Order Items Summary -->
-      <div style="background: var(--dn-surface-muted); border-radius: var(--dn-radius-md); padding: 1.25rem; border: 1px solid var(--dn-border);">
-        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem;">Items in this parcel</h4>
-        <div v-for="item in order.items" :key="item.id" style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.4rem;">
-          <span>{{ item.quantity }}x {{ item.product_name }} <small v-if="item.size_name">({{ item.size_name }})</small></span>
-          <strong>{{ formatBDT(item.total_price) }}</strong>
+        <p v-if="stopped" class="stopped">This order was {{ order.order_status }}. {{ noteFor(order.order_status) }}</p>
+
+        <ol v-else class="steps">
+          <li v-for="s in steps" :key="s.key" :class="{ on: reached(s.key) }">
+            <span class="dot"><Icon :name="s.icon" class="w-5 h-5" /></span>
+            <span>
+              <b>{{ s.title }}</b>
+              <small>{{ reached(s.key) ? noteFor(s.key) : "" }}</small>
+            </span>
+          </li>
+        </ol>
+
+        <p v-if="order.steadfast_tracking_code" class="courier">
+          SteadFast tracking code <b>{{ order.steadfast_tracking_code }}</b>
+          <a v-if="order.tracking_url" :href="order.tracking_url" target="_blank" rel="noopener">Track with the courier</a>
+        </p>
+
+        <div class="box">
+          <h3>Items</h3>
+          <ul>
+            <li v-for="i in order.items" :key="i.id">
+              <span>{{ i.quantity }} x {{ i.product_name }} <small v-if="i.size_name">Size {{ i.size_name }}</small></span>
+              <b>{{ formatBDT(i.total_price) }}</b>
+            </li>
+          </ul>
+          <p class="tot"><span>Total</span><b>{{ formatBDT(order.total_amount) }}</b></p>
+          <p class="pay">Payment: {{ payText[order.payment_status] || order.payment_status }}</p>
         </div>
-        <div style="border-top: 1px solid var(--dn-border); margin-top: 0.75rem; padding-top: 0.75rem; display: flex; justify-content: space-between; font-weight: 800; color: var(--dn-primary);">
-          <span>Total:</span>
-          <span>{{ formatBDT(order.total_amount) }}</span>
+
+        <div class="acts">
+          <button v-if="canPay" class="pm-btn pm-btn-primary" :disabled="!!busy" @click="payAgain">Pay now</button>
+          <button v-if="canCancel" class="pm-btn pm-btn-ghost" :disabled="!!busy" @click="cancel">Cancel order</button>
+          <NuxtLink to="/contact" class="pm-btn pm-btn-ghost">Need help?</NuxtLink>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
-<script setup>
-useSeoMeta({ title: "Track your order | Dressnio" });
-import { ref, onMounted } from "vue";
-
-const route = useRoute();
-const config = useRuntimeConfig();
-const searchQuery = ref("");
-const order = ref(null);
-const isLoading = ref(false);
-const notFound = ref(false);
-
-const steps = [
-  { key: "pending", title: "Order Placed", description: "Your order has been recorded and is pending confirmation", icon: "solar:cart-check-bold" },
-  { key: "processing", title: "Processing & Quality Check", description: "Our fashion team is preparing and tailoring your garments", icon: "solar:scissors-bold" },
-  { key: "shipped", title: "Handed to SteadFast Courier", description: "Your package is on its way to your destination", icon: "solar:delivery-bold" },
-  { key: "delivered", title: "Delivered", description: "Package safely delivered to your doorstep", icon: "solar:check-circle-bold" },
-];
-
-const statusWeights = {
-  pending: 1,
-  confirmed: 1,
-  processing: 2,
-  shipped: 3,
-  delivered: 4,
-};
-
-const isStepCompleted = (stepKey) => {
-  if (!order.value) return false;
-  const currentWeight = statusWeights[order.value.order_status] || 1;
-  const stepWeight = statusWeights[stepKey] || 1;
-  return currentWeight >= stepWeight;
-};
-
-const fetchOrder = async () => {
-  if (!searchQuery.value) return;
-  notFound.value = false;
-  isLoading.value = true;
-  try {
-    const res = await $fetch(`${config.public.apiBase}/client/my-orders/${searchQuery.value.trim()}`);
-    if (res && res.data) {
-      order.value = res.data;
-    }
-  } catch (err) {
-    notFound.value = true;
-    order.value = null;
-  } finally {
-    isLoading.value = false;
+<style scoped>
+.tk {
+  background: var(--paper);
+  padding: 2.5rem 0 4rem;
+  min-height: 60vh;
+}
+.narrow {
+  max-width: 44rem;
+}
+h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+.sub {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+}
+.finder {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.6rem 0 0.6rem;
+}
+@media (min-width: 640px) {
+  .finder {
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
   }
-};
-
-onMounted(() => {
-  if (route.query.order_no) {
-    searchQuery.value = route.query.order_no;
-    fetchOrder();
-  }
-});
-</script>
+}
+.finder span {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.finder input {
+  width: 100%;
+  height: 3.2rem;
+  padding: 0 1rem;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.finder input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(77, 77, 219, 0.14);
+}
+.finder .pm-btn {
+  min-height: 3.2rem;
+}
+.msg {
+  color: #c0285a;
+}
+.result {
+  margin-top: 2rem;
+  padding: 1.6rem;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.result header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.result h2 {
+  font-size: 1.7rem;
+  color: var(--brand);
+}
+.chip {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+.chip.delivered {
+  background: #dff5ea;
+  color: #0f7a53;
+}
+.chip.cancelled,
+.chip.returned {
+  background: #fde7ee;
+  color: #b3204f;
+}
+.steps {
+  list-style: none;
+  display: grid;
+  gap: 0;
+  margin: 1.8rem 0 1.2rem;
+}
+.steps li {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1.4rem;
+  color: #9a9ab0;
+}
+.steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 1.2rem;
+  top: 2.5rem;
+  bottom: 0.2rem;
+  width: 2px;
+  background: var(--line);
+}
+.steps li.on {
+  color: var(--ink);
+}
+.steps li.on:not(:last-child)::before {
+  background: var(--brand);
+}
+.dot {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #eeeef6;
+}
+.steps li.on .dot {
+  background: var(--brand);
+  color: #fff;
+}
+.steps b {
+  display: block;
+  padding-top: 0.5rem;
+}
+.steps small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+.stopped {
+  margin: 1.2rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #fde7ee;
+  color: #8a1a40;
+}
+.courier {
+  margin-bottom: 1.2rem;
+  color: var(--ink-soft);
+}
+.courier a {
+  margin-left: 0.6rem;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.box {
+  padding: 1.2rem;
+  border-radius: 16px;
+  background: var(--paper);
+}
+.box h3 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.7rem;
+}
+.box ul {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+.box li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.box small {
+  color: var(--ink-soft);
+}
+.tot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  font-size: 1.15rem;
+}
+.pay {
+  margin-top: 0.4rem;
+  color: var(--ink-soft);
+}
+.acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+</style>

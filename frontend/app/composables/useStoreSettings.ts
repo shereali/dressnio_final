@@ -7,10 +7,11 @@ export function useStoreSettings() {
     server: true,
   });
 
-  const raw = computed<Record<string, string>>(() => data.value?.data || {});
+  const raw = computed<Record<string, any>>(() => data.value?.data || {});
 
   return {
     raw,
+    paymentMethods: computed<Record<string, any>>(() => raw.value.payment_methods || { cod: { label: "Cash on delivery", online: false } }),
     announcement: computed(() => raw.value.announcement || ""),
     phone: computed(() => raw.value.contact_phone || ""),
     email: computed(() => raw.value.contact_email || ""),

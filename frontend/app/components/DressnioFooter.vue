@@ -39,8 +39,7 @@ const year = new Date().getFullYear();
       <div class="ft-grid">
         <div class="ft-brand">
           <NuxtLink to="/" class="ft-logo" aria-label="Dressnio home">
-            <span class="ft-mark">D</span>
-            <span class="ft-word">Dress<b>nio</b></span>
+            <BrandLogo :size="38" />
           </NuxtLink>
           <p class="ft-about">
             {{ about || "Stitched and unstitched wear for women: kurta sets, lehengas, sarees and more." }}
@@ -136,6 +135,7 @@ const year = new Date().getFullYear();
   }
 }
 .ft-logo {
+  --bl-eye: var(--brand-deep);
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;

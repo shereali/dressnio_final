@@ -14,6 +14,7 @@ class LoginCode extends Model
     protected $casts = [
         'expires_at' => 'datetime',
         'used_at'    => 'datetime',
+        'last_sent_at' => 'datetime',
     ];
 
     public function customer()

@@ -20,6 +20,7 @@ export default defineNuxtConfig({
   css: [
     "~/assets/scss/dressnio-theme.scss",
     "~/assets/css/premium.css",
+    "~/assets/css/admin.css",
   ],
 
   runtimeConfig: {
@@ -75,9 +76,12 @@ export default defineNuxtConfig({
 
         { hid: "description", name: "description", content: "Shop kurta sets, lehengas, sarees, maxis and unstitched suits from Dressnio. Cash on delivery across Bangladesh, bKash and Nagad accepted." },
         { name: "theme-color", content: "#4D4DDB" },
+        { property: "og:image", content: "/brand/logo.png" },
+        { property: "og:site_name", content: "Dressnio" },
         { name: "format-detection", content: "telephone=no" },
       ],
       link: [
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" },
         {

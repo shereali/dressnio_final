@@ -31,8 +31,8 @@ use App\Http\Controllers\API\Backend\WatchAndBuyController;
 Route::post('admin-login', [AdminAuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:10,1');
 
-// Authenticated admin routes
-Route::middleware(['auth:sanctum'])->group(function () {
+// Authenticated admin routes. Customer tokens must never reach these.
+Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -69,6 +69,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     ]);
 
     Route::get('orders/{order}/items', [AdminOrderController::class, 'show']);
+    Route::post('orders/sync-shipped', [AdminOrderController::class, 'syncAllShipped']);
+    Route::post('orders/{id}/payments/{paymentId}/review', [AdminOrderController::class, 'reviewPayment']);
+    Route::post('orders/{id}/steadfast/dispatch', [AdminOrderController::class, 'dispatchSteadfast']);
+    Route::post('orders/{id}/steadfast/sync', [AdminOrderController::class, 'syncSteadfast']);
 
     Route::get('settings', [SettingController::class, 'index']);
     Route::put('settings', [SettingController::class, 'update']);
@@ -93,6 +97,7 @@ use App\Http\Controllers\API\Frontend\CartController as ClientCartController;
 use App\Http\Controllers\API\Frontend\WishlistController as ClientWishlistController;
 use App\Http\Controllers\API\Frontend\OrderController as ClientOrderController;
 use App\Http\Controllers\API\Frontend\NewsletterController;
+use App\Http\Controllers\API\Frontend\PaymentController as PaymentCallbackController;
 use App\Http\Controllers\API\Frontend\ContactController;
 use App\Http\Controllers\API\Backend\SettingController as PublicSettingController;
 
@@ -126,11 +131,14 @@ Route::prefix('client')->group(function () {
     Route::post('login', [ClientAuthController::class, 'login'])->middleware('throttle:10,1');
 
     // Public & Guest Checkout and Tracking
-    Route::post('checkout', [ClientOrderController::class, 'checkout']);
-    Route::get('my-orders/{orderNo}', [ClientOrderController::class, 'show']);
+    Route::post('checkout', [ClientOrderController::class, 'checkout'])->middleware('throttle:20,1');
+    Route::get('my-orders/{orderNo}', [ClientOrderController::class, 'show'])->middleware('throttle:30,1');
+    Route::post('my-orders/{orderNo}/cancel', [ClientOrderController::class, 'cancel'])->middleware('throttle:10,1');
+    Route::post('my-orders/{orderNo}/pay', [ClientOrderController::class, 'pay'])->middleware('throttle:10,1');
+    Route::post('my-orders/{orderNo}/payment', [ClientOrderController::class, 'submitPayment'])->middleware('throttle:10,1');
 
     // Authenticated customer routes
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum', 'abilities:customer'])->group(function () {
         Route::get('me', [ClientAuthController::class, 'me']);
         Route::put('me', [ClientAuthController::class, 'updateProfile']);
         Route::post('logout', [ClientAuthController::class, 'logout']);
@@ -146,6 +154,17 @@ Route::prefix('client')->group(function () {
         Route::delete('wishlist/{productId}', [ClientWishlistController::class, 'destroy']);
 
         Route::get('my-orders', [ClientOrderController::class, 'index']);
-        Route::post('my-orders/{orderNo}/cancel', [ClientOrderController::class, 'cancel']);
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Payment gateway callbacks (SSLCommerz posts or redirects the customer here)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('payments/sslcommerz')->group(function () {
+    Route::match(['get', 'post'], 'success', [PaymentCallbackController::class, 'success']);
+    Route::match(['get', 'post'], 'fail', [PaymentCallbackController::class, 'fail']);
+    Route::match(['get', 'post'], 'cancel', [PaymentCallbackController::class, 'cancel']);
+    Route::post('ipn', [PaymentCallbackController::class, 'ipn']);
 });

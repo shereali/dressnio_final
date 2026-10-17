@@ -118,8 +118,8 @@
 </template>
 
 <script setup>
+const snackbar = useSnackbar();
 import { ref, reactive, watch, computed } from "vue";
-import { toast } from "vue3-toastify";
 
 definePageMeta({
   middleware: "auth",
@@ -168,13 +168,13 @@ const handleUpdateProfile = async () => {
     });
 
     if (error.value) {
-      toast.error(error.value.data?.message || "Failed to update profile");
+      snackbar.add({ type: "error", text: apiErrorText(error.value, "Failed to update profile") });
     } else {
-      toast.success("Profile updated successfully!");
+      snackbar.add({ type: "success", text: "Profile updated successfully!" });
       refresh();
     }
   } catch (err) {
-    toast.error("An unexpected error occurred while saving profile");
+    snackbar.add({ type: "error", text: "An unexpected error occurred while saving profile" });
   } finally {
     isSaving.value = false;
   }

@@ -7,105 +7,115 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * SteadFast Courier integration. Keys come from admin settings (encrypted),
+ * with STEADFAST_API_KEY / STEADFAST_SECRET_KEY environment variables as a fallback.
+ */
 class SteadfastService
 {
     protected string $baseUrl;
-    protected ?string $apiKey;
-    protected ?string $secretKey;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.steadfast.base_url', 'https://portal.steadfast.com.bd/api/v1');
-        $this->apiKey = env('STEADFAST_API_KEY');
-        $this->secretKey = env('STEADFAST_SECRET_KEY');
+        $this->baseUrl = rtrim((string) config('services.steadfast.base_url', 'https://portal.steadfast.com.bd/api/v1'), '/');
     }
 
-    protected function getApiKey(): ?string
+    protected function apiKey(): ?string
     {
-        return $this->apiKey ?: (class_exists(Setting::class) ? Setting::where('key', 'steadfast_api_key')->value('value') : null);
+        return Setting::read('steadfast_api_key') ?: env('STEADFAST_API_KEY') ?: null;
     }
 
-    protected function getSecretKey(): ?string
+    protected function secretKey(): ?string
     {
-        return $this->secretKey ?: (class_exists(Setting::class) ? Setting::where('key', 'steadfast_secret_key')->value('value') : null);
+        return Setting::read('steadfast_secret_key') ?: env('STEADFAST_SECRET_KEY') ?: null;
+    }
+
+    public function isConfigured(): bool
+    {
+        return (bool) ($this->apiKey() && $this->secretKey());
+    }
+
+    protected function http()
+    {
+        return Http::timeout(15)->acceptJson()->withHeaders([
+            'Api-Key'    => $this->apiKey(),
+            'Secret-Key' => $this->secretKey(),
+        ]);
     }
 
     /**
-     * Create a consignment / parcel in SteadFast Courier.
+     * Book a parcel. Cash is collected only when the order has not been paid online.
+     *
+     * @return array{ok: bool, consignment_id: ?string, tracking_code: ?string, error: ?string}
      */
     public function createOrder(Order $order): array
     {
-        $apiKey = $this->getApiKey();
-        $secretKey = $this->getSecretKey();
-
-        if (! $apiKey || ! $secretKey) {
-            // Mock response if credentials are not yet configured in local/dev
-            return [
-                'status'      => 200,
-                'message'     => 'Consignment created (Simulation Mode)',
-                'consignment' => [
-                    'consignment_id' => 'SF-' . rand(100000, 999999),
-                    'tracking_code'  => 'STDF' . strtoupper(substr(md5($order->order_no . time()), 0, 8)),
-                ],
-            ];
+        if (! $this->isConfigured()) {
+            return ['ok' => false, 'consignment_id' => null, 'tracking_code' => null, 'error' => 'Add your SteadFast API key and secret key in settings first.'];
         }
+
+        $phone = OrderService::normalizeMobile($order->customer_phone);
+        $cod = $order->payment_status === 'paid' ? 0 : (float) $order->total_amount;
 
         try {
-            $response = Http::withHeaders([
-                'Api-Key'    => $this->apiKey,
-                'Secret-Key' => $this->secretKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$this->baseUrl}/create_order", [
-                'invoice'         => $order->order_no,
-                'recipient_name'  => $order->customer_name,
-                'recipient_phone' => $order->customer_phone,
+            $response = $this->http()->post("{$this->baseUrl}/create_order", [
+                'invoice'           => $order->order_no,
+                'recipient_name'    => $order->customer_name,
+                'recipient_phone'   => $phone,
                 'recipient_address' => $order->delivery_address,
-                'cod_amount'      => $order->payment_method === 'cod' ? (float) $order->total_amount : 0,
-                'note'            => $order->delivery_notes ?? 'Handle with care - Dressnio Fashion',
+                'cod_amount'        => $cod,
+                'note'              => $order->delivery_notes ?: null,
             ]);
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-
-            Log::error('Steadfast API Error: ' . $response->body());
-            return [
-                'status'  => $response->status(),
-                'message' => $response->body(),
-            ];
         } catch (\Throwable $e) {
-            Log::error('Steadfast Service Exception: ' . $e->getMessage());
+            Log::warning('SteadFast create_order failed', ['error' => class_basename($e)]);
+
+            return ['ok' => false, 'consignment_id' => null, 'tracking_code' => null, 'error' => 'SteadFast could not be reached.'];
+        }
+
+        $json = $response->json() ?? [];
+
+        if ($response->successful() && (int) ($json['status'] ?? 0) === 200 && ! empty($json['consignment'])) {
             return [
-                'status'  => 500,
-                'message' => $e->getMessage(),
+                'ok'             => true,
+                'consignment_id' => (string) ($json['consignment']['consignment_id'] ?? ''),
+                'tracking_code'  => (string) ($json['consignment']['tracking_code'] ?? ''),
+                'error'          => null,
             ];
         }
+
+        Log::warning('SteadFast rejected the parcel', ['order' => $order->order_no, 'body' => mb_substr($response->body(), 0, 300)]);
+
+        $reason = is_array($json['errors'] ?? null) ? implode(' ', array_map(fn ($e) => implode(' ', (array) $e), $json['errors'])) : ($json['message'] ?? null);
+
+        return ['ok' => false, 'consignment_id' => null, 'tracking_code' => null, 'error' => $reason ?: 'SteadFast refused the parcel.'];
     }
 
     /**
-     * Check consignment status in SteadFast.
+     * Current delivery status of a booked parcel (SteadFast wording, e.g. "in_review", "delivered").
      */
-    public function checkStatus(string $consignmentId): array
+    public function checkStatus(string $consignmentId): ?string
     {
-        $apiKey = $this->getApiKey();
-        $secretKey = $this->getSecretKey();
-
-        if (! $apiKey || ! $secretKey) {
-            return [
-                'status'         => 200,
-                'delivery_status' => 'in_review',
-            ];
+        if (! $this->isConfigured()) {
+            return null;
         }
 
         try {
-            $response = Http::withHeaders([
-                'Api-Key'    => $apiKey,
-                'Secret-Key' => $secretKey,
-            ])->get("{$this->baseUrl}/status_by_cid/{$consignmentId}");
-
-            return $response->successful() ? $response->json() : ['status' => 400];
+            $response = $this->http()->get("{$this->baseUrl}/status_by_cid/{$consignmentId}");
         } catch (\Throwable $e) {
-            return ['status' => 500, 'message' => $e->getMessage()];
+            return null;
         }
+
+        return $response->successful() ? ($response->json('delivery_status') ?: null) : null;
+    }
+
+    /** Maps SteadFast's delivery status to one of our order statuses, or null to leave the order as is. */
+    public static function mapStatus(?string $status): ?string
+    {
+        return match (true) {
+            $status === null                                                   => null,
+            in_array($status, ['delivered', 'partial_delivered'], true)         => 'delivered',
+            $status === 'cancelled'                                            => 'returned',
+            default                                                            => null,
+        };
     }
 }

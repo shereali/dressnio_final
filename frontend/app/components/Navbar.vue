@@ -101,8 +101,7 @@ onBeforeUnmount(() => {
       </button>
 
       <NuxtLink to="/" class="logo" aria-label="Dressnio home">
-        <span class="logo-mark">D</span>
-        <span class="logo-word">Dress<b>nio</b></span>
+        <BrandLogo :size="34" />
       </NuxtLink>
 
       <nav class="desk" aria-label="Main">
@@ -220,7 +219,7 @@ onBeforeUnmount(() => {
   </Transition>
   <aside class="drawer" :class="{ open: menuOpen }" :aria-hidden="!menuOpen" aria-label="Menu">
     <div class="drawer-top">
-      <span class="logo-word">Dress<b>nio</b></span>
+      <BrandLogo :size="30" />
       <button type="button" class="icon-btn" aria-label="Close menu" @click="menuOpen = false">
         <Icon name="solar:close-circle-linear" class="w-6 h-6" />
       </button>
@@ -620,9 +619,6 @@ onBeforeUnmount(() => {
 @media (max-width: 1023px) {
   .logo {
     margin-right: auto;
-  }
-  .logo-mark {
-    display: none;
   }
 }
 </style>

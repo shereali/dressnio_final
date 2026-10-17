@@ -399,6 +399,12 @@ const menuGroups = [
             icon: 'solar:link-circle-bold',
           },
           {
+            id: 'config-payments',
+            label: 'Payments',
+            link: '/admin/configuration/payments',
+            icon: 'solar:card-bold',
+          },
+          {
             id: 'config-sms',
             label: 'SMS & Login Codes',
             link: '/admin/configuration/sms',

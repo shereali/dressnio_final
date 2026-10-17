@@ -49,7 +49,7 @@ useSeoMeta({ title: "Contact us | Dressnio", description: "Questions about an or
         </div>
 
         <form v-else class="ct-form" novalidate @submit.prevent="submit">
-          <div class="row">
+          <div class="pair">
             <label>
               <span>Name</span>
               <input v-model="form.name" type="text" autocomplete="name" :aria-invalid="!!errors.name" />
@@ -61,7 +61,7 @@ useSeoMeta({ title: "Contact us | Dressnio", description: "Questions about an or
               <small v-if="errors.email" class="err">{{ errors.email[0] }}</small>
             </label>
           </div>
-          <div class="row">
+          <div class="pair">
             <label>
               <span>Phone (optional)</span>
               <input v-model="form.phone" type="tel" autocomplete="tel" />
@@ -112,12 +112,12 @@ useSeoMeta({ title: "Contact us | Dressnio", description: "Questions about an or
   display: grid;
   gap: 1.1rem;
 }
-.row {
+.pair {
   display: grid;
   gap: 1.1rem;
 }
 @media (min-width: 640px) {
-  .row {
+  .pair {
     grid-template-columns: 1fr 1fr;
   }
 }

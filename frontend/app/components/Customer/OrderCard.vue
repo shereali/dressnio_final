@@ -51,9 +51,20 @@
         </span>
       </div>
 
-      <div class="flex items-center gap-2">
+      <p class="text-xs text-stone-500 mb-3">Payment: {{ payLabel }}</p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          v-if="canPay"
+          type="button"
+          :disabled="isPaying"
+          class="py-2 px-3 rounded-xl bg-brand text-white hover:bg-brand-600 text-xs font-medium transition-colors"
+          @click="payNow"
+        >
+          {{ isPaying ? "Opening..." : "Pay now" }}
+        </button>
         <NuxtLink
-          :to="`/track-order?order_no=${order.order_no || order.id}`"
+          :to="{ path: '/track-order', query: { order_no: order.order_no } }"
           class="flex-1 text-center py-2 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium transition-colors inline-flex items-center justify-center gap-1.5"
         >
           <Icon name="solar:radar-2-bold" class="w-4 h-4" />
@@ -76,13 +87,16 @@
 
 <script setup>
 import { ref } from "vue";
-import { toast } from "vue3-toastify";
 
 const props = defineProps({
   order: { type: Object, required: true },
 });
 
 const emit = defineEmits(["order-cancelled"]);
+const snackbar = useSnackbar();
+const config = useRuntimeConfig();
+const token = useTokenStore();
+const isPaying = ref(false);
 const isCancelling = ref(false);
 
 const statusBadgeClasses = {
@@ -106,28 +120,38 @@ const formatDate = (dateString) => {
   }
 };
 
+const authHeaders = () => ({ Authorization: `Bearer ${token.getToken}`, Accept: "application/json" });
+
+const payLabel = computed(
+  () => ({ unpaid: "not paid yet", verifying: "we are checking it", paid: "paid", refunded: "refunded" })[props.order.payment_status] || props.order.payment_status
+);
+const canPay = computed(
+  () => props.order.order_status === "pending" && props.order.payment_status === "unpaid" && props.order.payment_method === "card"
+);
+
 const cancelOrder = async () => {
-  if (!confirm(`Are you sure you want to cancel order #${props.order.order_no}?`)) {
-    return;
-  }
+  if (!confirm(`Cancel order #${props.order.order_no}?`)) return;
 
   isCancelling.value = true;
   try {
-    const { data, error } = await useApiFetch(
-      `/client/my-orders/${props.order.order_no}/cancel`,
-      { method: "POST" }
-    );
-
-    if (error.value) {
-      toast.error(error.value.data?.message || "Failed to cancel order");
-    } else {
-      toast.success("Order cancelled successfully");
-      emit("order-cancelled", props.order.order_no);
-    }
+    await $fetch(`${config.public.apiBase}/client/my-orders/${props.order.order_no}/cancel`, { method: "POST", headers: authHeaders() });
+    snackbar.add({ type: "success", text: "Order cancelled" });
+    emit("order-cancelled", props.order.order_no);
   } catch (err) {
-    toast.error("Failed to cancel order");
+    snackbar.add({ type: "error", text: err?.data?.message || "We could not cancel this order.", duration: 6000 });
   } finally {
     isCancelling.value = false;
+  }
+};
+
+const payNow = async () => {
+  isPaying.value = true;
+  try {
+    const res = await $fetch(`${config.public.apiBase}/client/my-orders/${props.order.order_no}/pay`, { method: "POST", headers: authHeaders() });
+    window.location.href = res.data.payment_url;
+  } catch (err) {
+    snackbar.add({ type: "error", text: err?.data?.message || "We could not open the payment page.", duration: 6000 });
+    isPaying.value = false;
   }
 };
 </script>

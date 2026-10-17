@@ -22,7 +22,7 @@ class Setting extends Model
     protected $keyType = 'string';
 
     /** Keys that hold credentials. They are stored encrypted and never sent back in full. */
-    public const SECRET_KEYS = ['sms_api_key'];
+    public const SECRET_KEYS = ['sms_api_key', 'sslcommerz_store_password', 'steadfast_api_key', 'steadfast_secret_key'];
 
     public static function isSecret(string $key): bool
     {
@@ -42,7 +42,8 @@ class Setting extends Model
             try {
                 return Crypt::decryptString($value);
             } catch (DecryptException $e) {
-                return $default;
+                // A value saved before encryption was introduced; it is re-encrypted on the next save
+                return $value;
             }
         }
 

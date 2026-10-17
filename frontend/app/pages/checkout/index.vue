@@ -1,408 +1,590 @@
-<template>
-  <div class="dn-container" style="padding-top: 2.5rem; padding-bottom: 4rem;">
-    <!-- Page Header -->
-    <div style="margin-bottom: 2rem; text-align: center;">
-      <h1 style="font-size: 2rem; font-weight: 800; color: var(--dn-tertiary); letter-spacing: -0.02em;">
-        Checkout
-      </h1>
-      <p style="color: var(--dn-text-muted); font-size: 0.95rem; margin-top: 0.35rem;">
-        Pay on delivery or online with bKash. Free delivery over {{ formatBDT(freeShippingAbove) }}.
-      </p>
-    </div>
-
-    <!-- Success View -->
-    <div v-if="orderPlaced" class="dn-card dn-card-glass" style="max-width: 680px; margin: 0 auto; padding: 2.5rem; text-align: center;">
-      <div style="width: 72px; height: 72px; background: var(--dn-accent-emerald-light); color: var(--dn-accent-emerald); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-        <Icon name="solar:check-circle-bold" style="font-size: 2.5rem;" />
-      </div>
-
-      <h2 style="font-size: 1.65rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 0.5rem;">
-        Thank You for Your Order!
-      </h2>
-      <p style="color: var(--dn-text-muted); font-size: 1rem; margin-bottom: 1.5rem;">
-        Your order <strong style="color: var(--dn-primary);">#{{ confirmedOrder?.order_no }}</strong> has been placed successfully.
-      </p>
-
-      <div style="background: var(--dn-surface-muted); border-radius: var(--dn-radius-md); padding: 1.25rem; text-align: left; margin-bottom: 2rem; border: 1px solid var(--dn-border);">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
-          <span style="color: var(--dn-text-muted);">Recipient:</span>
-          <strong>{{ confirmedOrder?.customer_name }} ({{ confirmedOrder?.customer_phone }})</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
-          <span style="color: var(--dn-text-muted);">Delivery Address:</span>
-          <span>{{ confirmedOrder?.delivery_address }}, {{ confirmedOrder?.delivery_city }}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
-          <span style="color: var(--dn-text-muted);">Payment Method:</span>
-          <span style="text-transform: uppercase; font-weight: 700;">{{ confirmedOrder?.payment_method }}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 800; color: var(--dn-primary); border-top: 1px solid var(--dn-border); padding-top: 0.75rem; margin-top: 0.75rem;">
-          <span>Total Amount:</span>
-          <span>{{ formatBDT(confirmedOrder?.total_amount) }}</span>
-        </div>
-      </div>
-
-      <div class="dn-flex dn-gap-3 dn-justify-center" style="flex-wrap: wrap;">
-        <NuxtLink :to="`/track-order?order_no=${confirmedOrder?.order_no}`" class="dn-btn dn-btn-primary">
-          <Icon name="solar:box-minimalistic-bold" />
-          <span>Track Order Timeline</span>
-        </NuxtLink>
-        <NuxtLink to="/shop" class="dn-btn dn-btn-outline">
-          <span>Continue Shopping</span>
-        </NuxtLink>
-      </div>
-    </div>
-
-    <!-- Empty Cart View -->
-    <div v-else-if="products.length === 0" class="dn-card" style="max-width: 500px; margin: 2rem auto; padding: 3rem; text-align: center;">
-      <div style="width: 64px; height: 64px; background: var(--dn-primary-light); color: var(--dn-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
-        <Icon name="solar:bag-3-bold" style="font-size: 2rem;" />
-      </div>
-      <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Your Cart is Empty</h3>
-      <p style="color: var(--dn-text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-        Discover our latest designer kurti sets, sarees, and dresses.
-      </p>
-      <NuxtLink to="/shop" class="dn-btn dn-btn-primary">
-        <span>Explore Collection</span>
-      </NuxtLink>
-    </div>
-
-    <!-- Checkout Grid -->
-    <div v-else class="checkout-grid">
-      <!-- Left: Shipping & Payment Details -->
-      <div class="dn-card" style="padding: 2rem;">
-        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
-          <Icon name="solar:user-id-bold" style="color: var(--dn-primary);" />
-          <span>1. Customer & Shipping Information</span>
-        </h2>
-
-        <form @submit.prevent="handleCheckout">
-          <!-- Full Name -->
-          <div class="dn-input-group">
-            <label class="dn-label">Full Name *</label>
-            <input
-              v-model="formData.name"
-              type="text"
-              class="dn-input"
-              placeholder="e.g. Ayesha Rahman"
-              required
-            />
-          </div>
-
-          <!-- Phone Number -->
-          <div class="dn-input-group">
-            <label class="dn-label">Mobile Number (Active for delivery OTP) *</label>
-            <input
-              v-model="formData.mobile_no"
-              type="tel"
-              class="dn-input"
-              placeholder="017XXXXXXXX"
-              pattern="^01[3-9]\d{8}$"
-              title="Please enter a valid 11-digit Bangladesh mobile number (e.g. 01712345678)"
-              required
-            />
-          </div>
-
-          <!-- Email (Optional) -->
-          <div class="dn-input-group">
-            <label class="dn-label">Email Address (Optional for invoice)</label>
-            <input
-              v-model="formData.email"
-              type="email"
-              class="dn-input"
-              placeholder="ayesha@example.com"
-            />
-          </div>
-
-          <!-- Delivery City / Region -->
-          <div class="dn-input-group">
-            <label class="dn-label">Delivery Region *</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-              <label
-                class="dn-choice-card"
-                :class="{ active: deliveryCity === 'Dhaka' }"
-                @click="setCity('Dhaka')"
-              >
-                <div>
-                  <strong style="display: block; font-size: 0.9rem;">Inside Dhaka</strong>
-                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">{{ STORE_POLICY.deliveryInsideCity }} ({{ formatBDT(shippingFee0) }})</span>
-                </div>
-                <Icon
-                  :name="deliveryCity === 'Dhaka' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
-                  style="font-size: 1.25rem; color: var(--dn-primary);"
-                />
-              </label>
-
-              <label
-                class="dn-choice-card"
-                :class="{ active: deliveryCity === 'Outside Dhaka' }"
-                @click="setCity('Outside Dhaka')"
-              >
-                <div>
-                  <strong style="display: block; font-size: 0.9rem;">Outside Dhaka</strong>
-                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">{{ STORE_POLICY.deliveryOutsideCity }} ({{ formatBDT(shippingFeeOutside) }})</span>
-                </div>
-                <Icon
-                  :name="deliveryCity === 'Outside Dhaka' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
-                  style="font-size: 1.25rem; color: var(--dn-primary);"
-                />
-              </label>
-            </div>
-          </div>
-
-          <!-- Full Address -->
-          <div class="dn-input-group">
-            <label class="dn-label">Full Delivery Address *</label>
-            <textarea
-              v-model="formData.address"
-              class="dn-textarea"
-              placeholder="House #, Road #, Area / Thana, Landmark (e.g. House 14, Road 4, Banani, Dhaka)"
-              required
-            ></textarea>
-          </div>
-
-          <!-- Delivery Notes -->
-          <div class="dn-input-group">
-            <label class="dn-label">Delivery Instructions (Optional)</label>
-            <input
-              v-model="formData.delivery_notes"
-              type="text"
-              class="dn-input"
-              placeholder="e.g. Call before delivery / Leave with guard"
-            />
-          </div>
-
-          <!-- Payment Method -->
-          <div style="margin-top: 2rem; margin-bottom: 2rem;">
-            <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.6rem;">
-              <Icon name="solar:card-2-bold" style="color: var(--dn-primary);" />
-              <span>2. Payment Method</span>
-            </h2>
-
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <label
-                class="dn-choice-card"
-                :class="{ active: formData.payment_method === 'cod' }"
-                @click="formData.payment_method = 'cod'"
-              >
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--dn-radius-sm); background: var(--dn-primary-light); color: var(--dn-primary); display: flex; align-items: center; justify-content: center;">
-                    <Icon name="solar:hand-money-bold" style="font-size: 1.25rem;" />
-                  </div>
-                  <div>
-                    <strong style="display: block; font-size: 0.95rem;">Cash on Delivery (COD)</strong>
-                    <span style="font-size: 0.8rem; color: var(--dn-text-muted);">Pay with cash when your parcel arrives at your doorstep</span>
-                  </div>
-                </div>
-                <Icon
-                  :name="formData.payment_method === 'cod' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
-                  style="font-size: 1.35rem; color: var(--dn-primary);"
-                />
-              </label>
-
-              <label
-                class="dn-choice-card"
-                :class="{ active: formData.payment_method === 'bkash' }"
-                @click="formData.payment_method = 'bkash'"
-              >
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--dn-radius-sm); background: #FDE8E8; color: #E11D48; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem;">
-                    bKash
-                  </div>
-                  <div>
-                    <strong style="display: block; font-size: 0.95rem;">bKash / Nagad Direct Pay</strong>
-                    <span style="font-size: 0.8rem; color: var(--dn-text-muted);">Pay to Merchant: 01974-784848</span>
-                  </div>
-                </div>
-                <Icon
-                  :name="formData.payment_method === 'bkash' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
-                  style="font-size: 1.35rem; color: var(--dn-primary);"
-                />
-              </label>
-            </div>
-          </div>
-
-          <!-- Submit Button -->
-          <button
-            type="submit"
-            class="dn-btn dn-btn-primary dn-btn-lg dn-btn-full"
-            :disabled="isSubmitting"
-            style="letter-spacing: 0.02em;"
-          >
-            <Icon v-if="isSubmitting" name="svg-spinners:180-ring-with-bg" style="font-size: 1.25rem;" />
-            <Icon v-else name="solar:lock-password-bold" style="font-size: 1.25rem;" />
-            <span>{{ isSubmitting ? 'Securing Order...' : `Place order (${formatBDT(totalAmount)})` }}</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- Right: Order Summary -->
-      <div>
-        <div class="dn-card dn-card-glass" style="padding: 1.75rem; position: sticky; top: 90px;">
-          <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 1.25rem;">
-            Order summary ({{ products.length }} {{ products.length === 1 ? "item" : "items" }})
-          </h3>
-
-          <div style="max-height: 280px; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.25rem;">
-            <div
-              v-for="item in products"
-              :key="`${item.id}-${item.size}-${item.color}`"
-              style="display: flex; gap: 0.85rem; padding: 0.75rem 0; border-bottom: 1px solid var(--dn-border-light);"
-            >
-              <div style="width: 52px; height: 68px; border-radius: 8px; overflow: hidden; background: var(--brand-tint); flex-shrink: 0;"><ArtImage :src="item.image" :alt="item.name" :kind="garmentKindFor(item.name)" :color="item.color || toneHexAt(item.id)" /></div>
-              <div style="flex-grow: 1;">
-                <h4 style="font-size: 0.875rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.25rem;">{{ item.name }}</h4>
-                <div style="font-size: 0.75rem; color: var(--dn-text-muted); display: flex; gap: 0.5rem;">
-                  <span v-if="item.size">Size: <strong>{{ item.size }}</strong></span>
-                  <span v-if="item.color">Color: <span class="dn-swatch" :style="{ backgroundColor: item.color, display: 'inline-block', verticalAlign: 'middle' }"></span></span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem;">
-                  <span style="font-size: 0.8rem; color: var(--dn-text-muted);">Qty: {{ item.quantity }}</span>
-                  <strong style="font-size: 0.9rem; color: var(--dn-primary);">{{ formatBDT(item.price * item.quantity) }}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Subtotal & Shipping Breakdown -->
-          <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.9rem; border-top: 1px solid var(--dn-border); padding-top: 1rem;">
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color: var(--dn-text-muted);">Subtotal:</span>
-              <strong>{{ formatBDT(subtotal) }}</strong>
-            </div>
-
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color: var(--dn-text-muted);">Shipping ({{ deliveryCity }}):</span>
-              <strong v-if="shippingFee === 0" style="color: var(--dn-accent-emerald);">FREE</strong>
-              <strong v-else>{{ formatBDT(shippingFee) }}</strong>
-            </div>
-
-            <div v-if="subtotal < 2000" style="background: var(--dn-primary-light); padding: 0.5rem 0.75rem; border-radius: var(--dn-radius-sm); font-size: 0.775rem; color: var(--dn-primary);">
-              Add <strong>{{ formatBDT(freeShippingAbove - subtotal) }}</strong> more for <strong>FREE Delivery</strong>!
-            </div>
-
-            <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 800; color: var(--dn-primary); border-top: 1.5px solid var(--dn-border); padding-top: 0.85rem; margin-top: 0.35rem;">
-              <span>Total Payable:</span>
-              <span>{{ formatBDT(totalAmount) }}</span>
-            </div>
-          </div>
-
-          <!-- Trust Badges -->
-          <div style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-around; font-size: 0.75rem; color: var(--dn-text-muted); border-top: 1px solid var(--dn-border-light); padding-top: 1rem;">
-            <span style="display: flex; align-items: center; gap: 0.3rem;">
-              <Icon name="solar:shield-check-bold" style="color: var(--dn-accent-emerald); font-size: 1rem;" /> 100% Genuine
-            </span>
-            <span style="display: flex; align-items: center; gap: 0.3rem;">
-              <Icon name="solar:box-bold" style="color: var(--dn-primary); font-size: 1rem;" /> SteadFast Courier
-            </span>
-            <span style="display: flex; align-items: center; gap: 0.3rem;">
-              <Icon name="solar:refresh-circle-bold" style="color: var(--dn-accent-gold); font-size: 1rem;" /> 7 Days Return
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-useSeoMeta({ title: "Checkout | Dressnio" });
+// Guest-friendly checkout: delivery details, a payment method from admin settings, then the order.
 import { useCartStore } from "~/stores/cart";
-import { ref, computed } from "vue";
+
+useSeoMeta({ title: "Checkout | Dressnio", robots: "noindex" });
 
 const cartStore = useCartStore();
-const snackbar = useSnackbar();
-const { freeShippingAbove, shippingFee: shippingFee0, shippingFeeOutside } = useStoreSettings();
+const token = useTokenStore();
 const config = useRuntimeConfig();
-const products = computed(() => cartStore.items);
+const snackbar = useSnackbar();
+const { freeShippingAbove, shippingFee, shippingFeeOutside, paymentMethods } = useStoreSettings();
 
-const deliveryCity = ref("Dhaka");
-const isSubmitting = ref(false);
-const orderPlaced = ref(false);
-const confirmedOrder = ref(null);
+const items = computed(() => cartStore.items);
 
-const formData = ref({
-  name: "",
-  mobile_no: "",
-  email: "",
-  address: "",
-  city: "Dhaka",
-  delivery_notes: "",
-  payment_method: "cod",
+const form = reactive({ name: "", mobile_no: "", email: "", address: "", delivery_notes: "", trx_id: "", sender_number: "" });
+const region = ref("Dhaka");
+const method = ref("");
+const errors = ref({});
+const submitting = ref(false);
+const placed = ref(null);
+const copied = ref(false);
+
+// Signed-in customers start with their saved details
+if (token.isAuthenticated) {
+  $fetch(`${config.public.apiBase}/client/me`, { headers: { Authorization: `Bearer ${token.getToken}`, Accept: "application/json" } })
+    .then((res) => {
+      const c = res?.data;
+      if (!c) return;
+      form.name ||= c.name && !/^Customer \d{4}$/.test(c.name) ? c.name : "";
+      form.mobile_no ||= c.mobile_no || "";
+      form.email ||= c.email || "";
+      form.address ||= c.address || "";
+      if (c.city) region.value = c.city.toLowerCase().includes("dhaka") && !c.city.toLowerCase().includes("outside") ? "Dhaka" : "Outside Dhaka";
+    })
+    .catch(() => {});
+}
+
+const methodList = computed(() => Object.entries(paymentMethods.value).map(([code, m]) => ({ code, ...m })));
+watchEffect(() => {
+  if (!method.value || !paymentMethods.value[method.value]) method.value = methodList.value[0]?.code || "cod";
 });
+const current = computed(() => paymentMethods.value[method.value] || {});
+const manual = computed(() => !!current.value.manual);
 
-const setCity = (city) => {
-  deliveryCity.value = city;
-  formData.value.city = city;
+const subtotal = computed(() => items.value.reduce((t, i) => t + i.price * i.quantity, 0));
+const delivery = computed(() => (subtotal.value >= freeShippingAbove.value ? 0 : region.value === "Dhaka" ? shippingFee.value : shippingFeeOutside.value));
+const total = computed(() => subtotal.value + delivery.value);
+const toFree = computed(() => Math.max(0, freeShippingAbove.value - subtotal.value));
+
+const field = (k) => errors.value[k]?.[0] || "";
+
+const validate = () => {
+  const e = {};
+  if (!form.name.trim()) e.name = ["Enter your name."];
+  if (!/^(\+?88)?01[3-9]\d{8}$/.test(form.mobile_no.replace(/\s|-/g, ""))) e.mobile_no = ["Enter a valid mobile number, like 01712345678."];
+  if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) e.email = ["Enter a valid email address or leave it empty."];
+  if (form.address.trim().length < 5) e.address = ["Enter your full delivery address."];
+  if (manual.value) {
+    if (!/^[A-Za-z0-9]{6,20}$/.test(form.trx_id.trim())) e.trx_id = ["Enter the TrxID from your payment SMS (6 to 20 letters and numbers)."];
+    if (!/^(\+?88)?01[3-9]\d{8}$/.test(form.sender_number.replace(/\s|-/g, ""))) e.sender_number = ["Enter the number you paid from."];
+  }
+  errors.value = e;
+  return !Object.keys(e).length;
 };
 
-const subtotal = computed(() => {
-  return products.value.reduce((total, item) => total + item.price * item.quantity, 0);
-});
-
-const shippingFee = computed(() => {
-  if (subtotal.value >= freeShippingAbove.value) return 0;
-  return deliveryCity.value === "Dhaka" ? shippingFee0.value : shippingFeeOutside.value;
-});
-
-const totalAmount = computed(() => {
-  return subtotal.value + shippingFee.value;
-});
-
-const handleCheckout = async () => {
-  if (products.value.length === 0) return;
-
-  isSubmitting.value = true;
-
+const copyNumber = async () => {
   try {
-    const payload = {
-      name: formData.value.name,
-      mobile_no: formData.value.mobile_no,
-      email: formData.value.email || null,
-      address: formData.value.address,
-      city: deliveryCity.value,
-      delivery_notes: formData.value.delivery_notes || null,
-      payment_method: formData.value.payment_method,
-      items: products.value.map((item) => ({
-        id: item.id,
-        name: item.name,
-        image: item.image,
-        size: item.size,
-        color: item.color,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-    };
+    await navigator.clipboard.writeText(current.value.number);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  } catch (e) {
+    /* the number is shown on screen anyway */
+  }
+};
 
+const place = async () => {
+  if (submitting.value || !items.value.length) return;
+  if (!validate()) {
+    await nextTick();
+    document.querySelector("[aria-invalid='true']")?.focus();
+    return;
+  }
+  submitting.value = true;
+  try {
     const res = await $fetch(`${config.public.apiBase}/client/checkout`, {
       method: "POST",
-      body: payload,
+      headers: { Accept: "application/json", ...(token.isAuthenticated ? { Authorization: `Bearer ${token.getToken}` } : {}) },
+      body: {
+        name: form.name.trim(),
+        mobile_no: form.mobile_no.replace(/\s|-/g, ""),
+        email: form.email.trim() || null,
+        address: form.address.trim(),
+        city: region.value,
+        delivery_notes: form.delivery_notes.trim() || null,
+        payment_method: method.value,
+        trx_id: manual.value ? form.trx_id.trim() : undefined,
+        sender_number: manual.value ? form.sender_number.replace(/\s|-/g, "") : undefined,
+        items: items.value.map((i) => ({ id: i.id, size: i.size, color: i.color, quantity: i.quantity, image: i.image })),
+      },
     });
-
-    if (res && res.data) {
-      confirmedOrder.value = res.data;
-      orderPlaced.value = true;
-      cartStore.checkout(); // Clear cart store
+    const order = res?.data;
+    cartStore.checkout();
+    if (order?.payment_url) {
+      window.location.href = order.payment_url;
+      return;
     }
-  } catch (error) {
-    console.error("Order submission failed:", error);
-    snackbar.add({ type: "error", text: error.data?.errors ? Object.values(error.data.errors).flat()[0] : error.data?.message || "We could not place your order. Check your details and try again.", duration: 6000 });
+    placed.value = order;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    errors.value = e?.data?.errors && typeof e.data.errors === "object" ? e.data.errors : {};
+    snackbar.add({ type: "error", text: Object.values(errors.value).flat()[0] || e?.data?.message || "We could not place your order. Check your details and try again.", duration: 7000 });
   } finally {
-    isSubmitting.value = false;
+    submitting.value = false;
   }
 };
 </script>
 
+<template>
+  <div class="co">
+    <div class="pm-wrap">
+      <!-- Placed -->
+      <section v-if="placed" class="done" role="status">
+        <Icon name="solar:check-circle-bold" class="w-14 h-14 tick" />
+        <h1>Thank you, {{ placed.customer_name.split(" ")[0] }}</h1>
+        <p class="lead">Order <b>#{{ placed.order_no }}</b> is placed. We will confirm it by phone or SMS before it ships.</p>
+        <p v-if="placed.payment_status === 'verifying'" class="note">We have your {{ placed.payment_method === "bkash" ? "bKash" : "Nagad" }} details and will check the TrxID shortly.</p>
+        <p v-else-if="placed.payment_method === 'card'" class="note warn">Your payment page did not open. Open your order to try the payment again.</p>
+        <dl class="recap">
+          <div><dt>Deliver to</dt><dd>{{ placed.delivery_address }}, {{ placed.delivery_city }}</dd></div>
+          <div><dt>Total</dt><dd>{{ formatBDT(placed.total_amount) }}</dd></div>
+          <div><dt>Payment</dt><dd>{{ paymentMethods[placed.payment_method]?.label || placed.payment_method }}</dd></div>
+        </dl>
+        <div class="done-actions">
+          <NuxtLink :to="{ path: '/track-order', query: { order_no: placed.order_no, mobile_no: placed.customer_phone } }" class="pm-btn pm-btn-primary">Track this order</NuxtLink>
+          <NuxtLink to="/shop" class="pm-btn pm-btn-ghost">Keep shopping</NuxtLink>
+        </div>
+      </section>
+
+      <!-- Empty -->
+      <section v-else-if="!items.length" class="done">
+        <GarmentArt kind="dress" color="#8383ED" class="empty-art" />
+        <h1>Your bag is empty</h1>
+        <p class="lead">Add something you love, then come back to check out.</p>
+        <NuxtLink to="/shop" class="pm-btn pm-btn-primary">Start shopping</NuxtLink>
+      </section>
+
+      <!-- Form -->
+      <form v-else class="grid" novalidate @submit.prevent="place">
+        <div class="left">
+          <h1>Checkout</h1>
+          <p v-if="!token.isAuthenticated" class="hint">Have an account? <NuxtLink :to="{ path: '/login', query: { redirect: '/checkout' } }">Sign in</NuxtLink> to fill this in for you. You can also order as a guest.</p>
+
+          <fieldset>
+            <legend>Your details</legend>
+            <label class="f">
+              <span>Full name</span>
+              <input v-model="form.name" type="text" autocomplete="name" :aria-invalid="!!field('name')" />
+              <small v-if="field('name')" class="err">{{ field('name') }}</small>
+            </label>
+            <div class="two">
+              <label class="f">
+                <span>Mobile number</span>
+                <input v-model="form.mobile_no" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="01712345678" :aria-invalid="!!field('mobile_no')" />
+                <small v-if="field('mobile_no')" class="err">{{ field('mobile_no') }}</small>
+                <small v-else>The courier calls this number.</small>
+              </label>
+              <label class="f">
+                <span>Email (optional)</span>
+                <input v-model="form.email" type="email" autocomplete="email" :aria-invalid="!!field('email')" />
+                <small v-if="field('email')" class="err">{{ field('email') }}</small>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Delivery</legend>
+            <div class="radios" role="radiogroup" aria-label="Delivery area">
+              <label :class="{ on: region === 'Dhaka' }">
+                <input v-model="region" type="radio" value="Dhaka" />
+                <span><b>Inside Dhaka</b><small>{{ STORE_POLICY.deliveryInsideCity }} · {{ delivery === 0 && subtotal >= freeShippingAbove ? "Free" : formatBDT(shippingFee) }}</small></span>
+              </label>
+              <label :class="{ on: region === 'Outside Dhaka' }">
+                <input v-model="region" type="radio" value="Outside Dhaka" />
+                <span><b>Outside Dhaka</b><small>{{ STORE_POLICY.deliveryOutsideCity }} · {{ subtotal >= freeShippingAbove ? "Free" : formatBDT(shippingFeeOutside) }}</small></span>
+              </label>
+            </div>
+            <label class="f">
+              <span>Full address</span>
+              <textarea v-model="form.address" rows="3" autocomplete="street-address" placeholder="House, road, area, thana and district" :aria-invalid="!!field('address')"></textarea>
+              <small v-if="field('address')" class="err">{{ field('address') }}</small>
+            </label>
+            <label class="f">
+              <span>Note for the courier (optional)</span>
+              <input v-model="form.delivery_notes" type="text" maxlength="500" placeholder="Landmark, preferred time" />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Payment</legend>
+            <div class="methods" role="radiogroup" aria-label="Payment method">
+              <label v-for="m in methodList" :key="m.code" :class="{ on: method === m.code }">
+                <input v-model="method" type="radio" :value="m.code" />
+                <Icon :name="m.code === 'cod' ? 'solar:wallet-money-bold-duotone' : m.code === 'card' ? 'solar:card-bold-duotone' : 'solar:smartphone-2-bold-duotone'" class="w-6 h-6" />
+                <span><b>{{ m.label }}</b><small>{{ m.code === "cod" ? "Pay when it arrives" : m.code === "card" ? "Pay securely online" : "Send money, then enter the TrxID" }}</small></span>
+              </label>
+            </div>
+
+            <div v-if="manual" class="manual">
+              <ol>
+                <li>Open {{ current.label }} and choose <b>Send Money</b>.</li>
+                <li>
+                  Send <b>{{ formatBDT(total) }}</b> to
+                  <button type="button" class="num" @click="copyNumber">{{ current.number }} <Icon :name="copied ? 'solar:check-circle-bold' : 'solar:copy-linear'" class="w-4 h-4" /></button>
+                  <small>{{ copied ? "Copied" : "Personal number. Tap to copy." }}</small>
+                </li>
+                <li>Enter the TrxID from the confirmation SMS below.</li>
+              </ol>
+              <div class="two">
+                <label class="f">
+                  <span>TrxID</span>
+                  <input v-model="form.trx_id" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. 9H7K2LMN4P" :aria-invalid="!!field('trx_id')" />
+                  <small v-if="field('trx_id')" class="err">{{ field('trx_id') }}</small>
+                </label>
+                <label class="f">
+                  <span>Number you paid from</span>
+                  <input v-model="form.sender_number" type="tel" inputmode="tel" placeholder="01712345678" :aria-invalid="!!field('sender_number')" />
+                  <small v-if="field('sender_number')" class="err">{{ field('sender_number') }}</small>
+                </label>
+              </div>
+            </div>
+            <p v-else-if="method === 'card'" class="manual-note">You will pay on SSLCommerz's secure page with a card, bKash, Nagad or net banking. Your order is held while you pay.</p>
+            <p v-else class="manual-note">Pay the courier {{ formatBDT(total) }} in cash when your parcel arrives.</p>
+          </fieldset>
+        </div>
+
+        <aside class="right">
+          <div class="sum">
+            <h2>Order summary</h2>
+            <ul class="lines">
+              <li v-for="i in items" :key="`${i.id}-${i.size}-${i.color}`">
+                <span class="thumb"><ArtImage :src="i.image" :alt="i.name" :kind="garmentKindFor(i.name)" :color="i.color || toneHexAt(i.id)" /></span>
+                <span class="meta">
+                  <b>{{ i.name }}</b>
+                  <small>{{ [i.size && `Size ${i.size}`, `Qty ${i.quantity}`].filter(Boolean).join(" · ") }}</small>
+                </span>
+                <span class="amt">{{ formatBDT(i.price * i.quantity) }}</span>
+              </li>
+            </ul>
+            <dl>
+              <div><dt>Subtotal</dt><dd>{{ formatBDT(subtotal) }}</dd></div>
+              <div><dt>Delivery</dt><dd>{{ delivery ? formatBDT(delivery) : "Free" }}</dd></div>
+              <div class="total"><dt>Total</dt><dd>{{ formatBDT(total) }}</dd></div>
+            </dl>
+            <p v-if="toFree > 0" class="free">Add {{ formatBDT(toFree) }} more for free delivery.</p>
+            <button type="submit" class="pm-btn pm-btn-primary go" :disabled="submitting">
+              {{ submitting ? "Placing your order" : method === "card" ? `Continue to payment, ${formatBDT(total)}` : `Place order, ${formatBDT(total)}` }}
+            </button>
+            <p class="fine">{{ STORE_POLICY.exchangeWindow }} size exchange on every order.</p>
+          </div>
+        </aside>
+      </form>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-.checkout-grid {
+.co {
+  background: var(--paper);
+  padding: 2rem 0 4rem;
+}
+h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+.hint {
+  margin: 0.6rem 0 1.6rem;
+  color: var(--ink-soft);
+}
+.hint a {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.grid {
   display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
   gap: 2rem;
 }
-
-@media (max-width: 991px) {
-  .checkout-grid {
-    grid-template-columns: 1fr;
+@media (min-width: 960px) {
+  .grid {
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3.5rem;
+    align-items: start;
   }
+  .right {
+    position: sticky;
+    top: 6rem;
+  }
+}
+fieldset {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1.8rem;
+  padding: 0;
+  border: 0;
+}
+legend {
+  margin-bottom: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--brand-deep);
+}
+.two {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.f span {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.f input,
+.f textarea {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1rem;
+}
+.f input:focus,
+.f textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(77, 77, 219, 0.14);
+}
+.f [aria-invalid="true"] {
+  border-color: #d63a6a;
+}
+.f small {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+.f small.err {
+  color: #c0285a;
+}
+.radios,
+.methods {
+  display: grid;
+  gap: 0.7rem;
+}
+@media (min-width: 640px) {
+  .radios {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.radios label,
+.methods label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.radios label.on,
+.methods label.on {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+.radios input,
+.methods input {
+  position: absolute;
+  opacity: 0;
+}
+.radios input:focus-visible + span,
+.methods input:focus-visible ~ span {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+.radios b,
+.methods b {
+  display: block;
+}
+.radios small,
+.methods small {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+.methods svg {
+  flex-shrink: 0;
+  color: var(--brand);
+}
+.manual {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px dashed #b9b9ee;
+}
+.manual ol {
+  display: grid;
+  gap: 0.8rem;
+  padding-left: 1.2rem;
+  line-height: 1.55;
+}
+.num {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  font-weight: 700;
+  color: var(--brand);
+}
+.manual li small {
+  display: block;
+  color: var(--ink-soft);
+}
+.manual-note {
+  padding: 1rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.sum {
+  padding: 1.5rem;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 60px -40px rgba(21, 21, 82, 0.4);
+}
+.sum h2 {
+  font-size: 1.5rem;
+  color: var(--brand-deep);
+}
+.lines {
+  list-style: none;
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.2rem 0;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.lines li {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.thumb {
+  flex-shrink: 0;
+  width: 3.4rem;
+  height: 4.4rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--brand-tint);
+}
+.meta {
+  flex: 1;
+  min-width: 0;
+}
+.meta b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta small {
+  color: var(--ink-soft);
+}
+.amt {
+  font-weight: 600;
+}
+.sum dl {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.sum dl div {
+  display: flex;
+  justify-content: space-between;
+}
+.sum .total {
+  margin-top: 0.4rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--brand);
+}
+.free {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.go {
+  width: 100%;
+  margin-top: 1.2rem;
+  min-height: 3.4rem;
+}
+.go:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.fine {
+  margin-top: 0.8rem;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 36rem;
+  margin: 2rem auto;
+  text-align: center;
+}
+.tick {
+  color: #0f8a5f;
+}
+.done h1 {
+  margin: 0.8rem 0;
+}
+.lead {
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.note {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: var(--brand-tint);
+  color: var(--brand-deep);
+}
+.note.warn {
+  background: #fff4d6;
+  color: #7a5200;
+}
+.recap {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+  margin: 1.6rem 0;
+  padding: 1.2rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.recap div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.recap dt {
+  color: var(--ink-soft);
+}
+.recap dd {
+  text-align: right;
+  font-weight: 600;
+}
+.done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+}
+.empty-art {
+  width: 150px;
+  height: 200px;
 }
 </style>

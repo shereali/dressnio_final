@@ -1,10 +1,7 @@
 <template>
   <div class="au">
     <aside class="au-art" aria-hidden="true">
-      <NuxtLink to="/" class="au-logo" tabindex="-1">
-        <span class="au-mark">D</span>
-        <span class="au-word">Dress<b>nio</b></span>
-      </NuxtLink>
+      <NuxtLink to="/" class="au-logo" tabindex="-1"><BrandLogo :size="38" /></NuxtLink>
       <div class="au-stage">
         <div class="au-arch arch"><GarmentArt kind="lehenga" color="#EBB84C" /></div>
         <div class="au-arch arch small"><GarmentArt kind="kurta" color="#F2A7BC" /></div>
@@ -14,10 +11,7 @@
 
     <main class="au-main">
       <header class="au-top">
-        <NuxtLink to="/" class="au-logo dark" aria-label="Dressnio home">
-          <span class="au-mark">D</span>
-          <span class="au-word">Dress<b>nio</b></span>
-        </NuxtLink>
+        <NuxtLink to="/" class="au-logo dark" aria-label="Dressnio home"><BrandLogo :size="34" /></NuxtLink>
         <NuxtLink to="/shop" class="au-skip">Continue as guest</NuxtLink>
       </header>
       <div class="au-body"><slot /></div>
@@ -64,6 +58,7 @@
   color: var(--brand);
 }
 .au-logo {
+  --bl-eye: #4d4ddb;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
