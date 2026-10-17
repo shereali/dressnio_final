@@ -37,7 +37,9 @@ export const useCartStore = defineStore("cart", {
     },
 
     removeProduct(product) {
-      const index = this.items.findIndex((p) => p.id === product.id);
+      const index = this.items.findIndex(
+        (p) => p.id === product.id && p.size === product.size && p.color === product.color
+      );
       if (index !== -1) {
         this.items.splice(index, 1);
       }
@@ -56,13 +58,9 @@ export const useCartStore = defineStore("cart", {
     },
 
     addToCart(product) {
-      console.log("size visible", product.is_size_visible);
-      if (
-        product.is_size_visible == true &&
-        (!product.size || !product.color)
-      ) {
-        console.error("Please select size and color before adding to cart.");
-        return;
+      // A size is only required when the product sells in sizes
+      if (product.is_size_visible == true && !product.size) {
+        return false;
       }
 
       let existingProductIndex = "";
@@ -92,6 +90,7 @@ export const useCartStore = defineStore("cart", {
       }
 
       this.isOpen = true;
+      return true;
     },
 
     checkout() {
@@ -102,5 +101,5 @@ export const useCartStore = defineStore("cart", {
       this.isOpen = false; // Close the cart after checkout
     },
   },
-  persist: true,
+  persist: { paths: ["items"] },
 });

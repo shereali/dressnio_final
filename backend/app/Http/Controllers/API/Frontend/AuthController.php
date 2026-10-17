@@ -6,6 +6,7 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\LoginCode;
+use App\Services\SmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,74 +14,149 @@ use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
-    /**
-     * Send OTP for phone-based authentication.
-     */
-    public function sendOtp(Request $request): JsonResponse
+    private const OTP_MINUTES = 5;
+    private const RESEND_SECONDS = 60;
+    private const MAX_ATTEMPTS = 5;
+
+    /** Accepts 01XXXXXXXXX, 8801XXXXXXXXX and +8801XXXXXXXXX and returns the local 01XXXXXXXXX form. */
+    private function normalizeMobile(?string $value): string
     {
-        $request->validate([
-            'mobile_no' => 'required|string|regex:/^01[3-9]\d{8}$/',
-        ]);
+        $digits = preg_replace('/\D/', '', (string) $value);
 
-        $otp = (string) rand(1000, 9999);
+        if (str_starts_with($digits, '880')) {
+            $digits = '0' . substr($digits, 3);
+        }
 
-        // Store OTP code in LoginCode model with 10-minute expiry
-        LoginCode::updateOrCreate(
-            ['mobile_no' => $request->mobile_no],
-            [
-                'code'       => $otp,
-                'expires_at' => now()->addMinutes(10),
-            ]
-        );
+        return $digits;
+    }
 
-        Log::info("OTP for {$request->mobile_no}: {$otp}");
-
-        return ApiResponse::success([
-            'mobile_no' => $request->mobile_no,
-            'message'   => 'OTP sent successfully',
-            // Return OTP in dev mode for smooth testing
-            'dev_otp'   => app()->environment('local') ? $otp : null,
-        ], 'OTP sent successfully');
+    private function hashCode(string $mobile, string $otp): string
+    {
+        return hash_hmac('sha256', $mobile . '|' . $otp, (string) config('app.key'));
     }
 
     /**
-     * Verify OTP and log in / register customer.
+     * Send a one-time code to a mobile number (SMS through the gateway set in admin settings).
+     */
+    public function sendOtp(Request $request, SmsService $sms): JsonResponse
+    {
+        $request->merge(['mobile_no' => $this->normalizeMobile($request->input('mobile_no'))]);
+
+        $request->validate([
+            'mobile_no' => ['required', 'string', 'regex:/^01[3-9]\d{8}$/'],
+        ], [
+            'mobile_no.regex' => 'Enter a valid Bangladeshi mobile number, like 01712345678.',
+        ]);
+
+        $mobile = $request->mobile_no;
+        $existing = LoginCode::where('mobile_no', $mobile)->first();
+
+        if ($existing?->last_sent_at && $existing->last_sent_at->gt(now()->subSeconds(self::RESEND_SECONDS))) {
+            $wait = self::RESEND_SECONDS - $existing->last_sent_at->diffInSeconds(now());
+
+            return ApiResponse::error(
+                "Please wait {$wait} seconds before asking for another code.",
+                429,
+                ['retry_after' => max(1, (int) $wait)]
+            );
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        $viaSms = $sms->isConfigured();
+
+        // Without a configured gateway the code is only available in local development
+        if (! $viaSms && ! app()->environment('local')) {
+            return ApiResponse::error('Sign in by SMS is not available right now. Please try again later.', 503);
+        }
+
+        if ($viaSms) {
+            $result = $sms->send($mobile, $sms->otpMessage($otp, self::OTP_MINUTES));
+
+            if (! $result['ok']) {
+                return ApiResponse::error('We could not send the SMS. Check the number and try again.', 502);
+            }
+        } else {
+            Log::info("OTP for {$mobile}: {$otp} (SMS gateway not configured)");
+        }
+
+        LoginCode::updateOrCreate(
+            ['mobile_no' => $mobile],
+            [
+                'code'         => $this->hashCode($mobile, $otp),
+                'attempts'     => 0,
+                'last_sent_at' => now(),
+                'expires_at'   => now()->addMinutes(self::OTP_MINUTES),
+                'used_at'      => null,
+            ]
+        );
+
+        return ApiResponse::success([
+            'mobile_no'  => $mobile,
+            'expires_in' => self::OTP_MINUTES * 60,
+            'resend_in'  => self::RESEND_SECONDS,
+            'length'     => 6,
+            // Only exposed in local development when no SMS gateway is configured
+            'dev_otp'    => (! $viaSms && app()->environment('local')) ? $otp : null,
+        ], 'Code sent');
+    }
+
+    /**
+     * Verify the code and sign the customer in, creating the account on first use.
      */
     public function verifyOtp(Request $request): JsonResponse
     {
+        $request->merge(['mobile_no' => $this->normalizeMobile($request->input('mobile_no'))]);
+
         $request->validate([
-            'mobile_no' => 'required|string',
-            'otp'       => 'required|string|size:4',
+            'mobile_no' => ['required', 'string', 'regex:/^01[3-9]\d{8}$/'],
+            'otp'       => ['required', 'string', 'regex:/^\d{6}$/'],
+        ], [
+            'otp.regex' => 'Enter the 6-digit code from your SMS.',
         ]);
 
-        $loginCode = LoginCode::where('mobile_no', $request->mobile_no)
-            ->where('code', $request->otp)
-            ->where('expires_at', '>=', now())
-            ->first();
+        $mobile = $request->mobile_no;
+        $code = LoginCode::where('mobile_no', $mobile)->whereNull('used_at')->first();
 
-        // Allow fallback demo code 1234 for testing in local environment
-        if (! $loginCode && ! (app()->environment('local') && $request->otp === '1234')) {
-            return ApiResponse::error('Invalid or expired OTP code', 422);
+        if (! $code || $code->expires_at->isPast()) {
+            return ApiResponse::error('This code has expired. Ask for a new one.', 422, ['expired' => true]);
         }
 
-        if ($loginCode) {
-            $loginCode->delete();
+        if ($code->attempts >= self::MAX_ATTEMPTS) {
+            return ApiResponse::error('Too many wrong codes. Ask for a new one.', 429, ['expired' => true]);
         }
+
+        if (! hash_equals($code->code, $this->hashCode($mobile, $request->otp))) {
+            $code->increment('attempts');
+            $left = max(0, self::MAX_ATTEMPTS - $code->attempts);
+
+            return ApiResponse::error(
+                $left > 0 ? "That code is not right. You have {$left} " . ($left === 1 ? 'try' : 'tries') . ' left.' : 'Too many wrong codes. Ask for a new one.',
+                422,
+                ['attempts_left' => $left]
+            );
+        }
+
+        $code->update(['used_at' => now()]);
 
         $customer = Customer::firstOrCreate(
-            ['mobile_no' => $request->mobile_no],
+            ['mobile_no' => $mobile],
             [
-                'name'      => 'Customer ' . substr($request->mobile_no, -4),
+                'name'      => 'Customer ' . substr($mobile, -4),
                 'is_active' => true,
             ]
         );
+
+        if (! $customer->is_active) {
+            return ApiResponse::error('This account is disabled. Contact support.', 403);
+        }
 
         $token = $customer->createToken('customer-token', ['customer'])->plainTextToken;
 
         return ApiResponse::success([
             'token'    => $token,
             'customer' => $customer,
-        ], 'Verification successful');
+            'is_new'   => $customer->wasRecentlyCreated,
+        ], 'Signed in');
     }
 
     /**

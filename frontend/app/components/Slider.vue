@@ -1,197 +1,341 @@
 <script setup>
-import { computed } from "vue";
+// Homepage hero. Uses the sliders managed in admin; when a slide has no photo it is drawn from the garment art.
 import { Swiper, SwiperSlide } from "swiper/vue";
-import { Autoplay, Pagination, Navigation, EffectCreative } from "swiper/modules";
-
-// Import Swiper styles
+import { Autoplay, Pagination, Navigation, EffectFade, A11y } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import "swiper/css/effect-creative";
+import "swiper/css/effect-fade";
 
 const props = defineProps({
-  sliders: {
-    type: Array,
-    default: () => [],
-  },
+  sliders: { type: Array, default: () => [] },
+  featured: { type: Object, default: null },
 });
 
-const defaultSlides = [
+const fallbackSlides = [
   {
-    id: 1,
-    title: "Elegant Evening Collection",
-    subtitle: "Sophisticated Designs for Every Occasion",
+    id: "f1",
+    title: "Kurta sets for long, warm days",
+    subtitle: "Light cotton and lawn, cut to move with you from office to dinner.",
     link: "/shop",
-    image: "/brand/hero-evening.jpg",
+    cta: "Shop kurta sets",
+    kinds: ["kurta", "shrug", "top"],
+    color: "#4D4DDB",
   },
   {
-    id: 2,
-    title: "Summer Breeze Edit",
-    subtitle: "Light & Colourful Designs for Warm Days",
-    link: "/shop",
-    image: "/brand/hero-summer.jpg",
+    id: "f2",
+    title: "Lehengas for the wedding season",
+    subtitle: "Embroidered skirts with matching dupattas, ready to order in your size.",
+    link: "/category/lehengas",
+    cta: "See lehengas",
+    kinds: ["lehenga", "dress", "maxi"],
+    color: "#B8446B",
   },
   {
-    id: 3,
-    title: "Festive Glamour",
-    subtitle: "Dazzling Outfits for Special Celebrations",
-    link: "/category/festive",
-    image: "/brand/hero-festive.jpg",
+    id: "f3",
+    title: "Sarees worth keeping",
+    subtitle: "Soft drapes and woven borders for every celebration on your calendar.",
+    link: "/category/sarees",
+    cta: "Browse sarees",
+    kinds: ["saree", "suit", "kurta"],
+    color: "#1F8A70",
   },
   {
-    id: 4,
-    title: "Contemporary Chic",
-    subtitle: "Modern Styles for the Fashion-Forward",
-    link: "/shop",
-    image: "/brand/hero-chic.jpg",
+    id: "f4",
+    title: "Unstitched suits, tailored to you",
+    subtitle: "Pick the fabric here and have it cut to your own measurements.",
+    link: "/unstitched-suits",
+    cta: "Choose a fabric",
+    kinds: ["unstitched", "fabric", "suit"],
+    color: "#D49A1F",
   },
 ];
 
-const slideItems = computed(() => {
-  if (props.sliders && props.sliders.length > 0) {
-    return props.sliders.map((s, idx) => ({
-      ...s,
-      image: s.image || defaultSlides[idx % defaultSlides.length].image,
-    }));
+const rotation = [
+  ["kurta", "shrug", "top"],
+  ["lehenga", "dress", "maxi"],
+  ["saree", "suit", "kurta"],
+  ["unstitched", "fabric", "suit"],
+];
+const colors = ["#4D4DDB", "#B8446B", "#1F8A70", "#D49A1F"];
+// light garment colours that stand out against the indigo centre arch
+const pop = ["#EBB84C", "#F2A7BC", "#86D4B4", "#F3D58E"];
+
+const slides = computed(() => {
+  if (props.sliders?.length) {
+    return props.sliders.map((s, i) => {
+      const guess = garmentKindFor(s.title, s.subtitle, s.link);
+      const base = rotation[i % rotation.length];
+      const kinds = guess !== "dress" ? [guess, ...base.filter((k) => k !== guess)].slice(0, 3) : base;
+      return { ...s, cta: "Shop the collection", kinds, color: colors[i % colors.length] };
+    });
   }
-  return defaultSlides;
+  return fallbackSlides;
 });
+
+const tags = (slide) => {
+  const m = props.featured;
+  if (!m) return null;
+  const info = priceInfo(m);
+  return { name: m.name, price: info.sale, slug: m.slug || m.id };
+};
 </script>
 
 <template>
-  <div class="relative group/slider overflow-hidden bg-gray-950">
+  <section class="hero relative overflow-hidden" aria-label="Featured collections">
     <Swiper
-      :modules="[
-        Autoplay,
-        Navigation,
-        Pagination,
-        EffectCreative,
-      ]"
-      :slides-per-view="1"
-      :loop="true"
-      :effect="'creative'"
-      :navigation="{
-        nextEl: '.swiper-button-next-custom',
-        prevEl: '.swiper-button-prev-custom',
-      }"
-      :pagination="{
-        clickable: true,
-        el: '.swiper-pagination-custom',
-        bulletClass: 'custom-bullet',
-        bulletActiveClass: 'custom-bullet-active'
-      }"
-      :autoplay="{
-        delay: 5000,
-        disableOnInteraction: false,
-      }"
-      :creative-effect="{
-        prev: {
-          shadow: true,
-          translate: ['-20%', 0, -1],
-          opacity: 0,
-        },
-        next: {
-          translate: ['100%', 0, 0],
-        },
-      }"
-      class="hero-swiper"
+      :modules="[Autoplay, Pagination, Navigation, EffectFade, A11y]"
+      effect="fade"
+      :fade-effect="{ crossFade: true }"
+      :loop="slides.length > 1"
+      :speed="900"
+      :autoplay="{ delay: 6500, disableOnInteraction: false, pauseOnMouseEnter: true }"
+      :navigation="{ nextEl: '.hero-next', prevEl: '.hero-prev' }"
+      :pagination="{ el: '.hero-dots', clickable: true, bulletClass: 'hero-dot', bulletActiveClass: 'hero-dot-active' }"
+      :a11y="{ enabled: true }"
     >
-      <SwiperSlide v-for="(slide, index) in slideItems" :key="slide.id || index" v-slot="{ isActive }">
-        <div class="relative w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh] min-h-[440px] overflow-hidden">
-          <!-- Background Image with Ken Burns Effect -->
-          <img
-            :src="slide.image"
-            :alt="slide.title"
-            class="w-full h-full object-cover transition-transform duration-[8000ms] ease-linear"
-            :class="isActive ? 'scale-105' : 'scale-100'"
-          />
-          
-          <!-- Modern Gradient Overlays -->
-          <div class="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10"></div>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10"></div>
-
-          <!-- Content Wrapper -->
-          <div class="absolute inset-0 z-20 flex items-center px-6 md:px-16 lg:px-28 xl:px-36">
-            <div class="max-w-3xl">
-              <!-- Subtitle with Animated Line -->
-              <div 
-                class="flex items-center gap-3 mb-3 md:mb-5 overflow-hidden"
-                :class="isActive ? 'opacity-100' : 'opacity-0'"
-              >
-                <div 
-                  class="h-[2px] bg-brand transform transition-all duration-1000 delay-300 origin-left"
-                  :class="isActive ? 'w-12 md:w-20 scale-x-100' : 'w-0 scale-x-0'"
-                ></div>
-                <h4 
-                  class="text-brand-300 font-bold tracking-[.25em] uppercase text-xs md:text-sm transition-all duration-1000 delay-400"
-                  :class="isActive ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'"
-                >
-                  {{ slide.subtitle || 'Curated Festive Collection' }}
-                </h4>
-              </div>
-
-              <!-- Main Title -->
-              <h2 
-                class="text-white text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] mb-5 md:mb-7 transition-all duration-700 delay-500"
-                :class="isActive ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'"
-              >
-                <span>{{ slide.title }}</span>
-              </h2>
-
-              <!-- CTA Button Section -->
-              <div 
-                class="flex items-center gap-4 transition-all duration-700 delay-700"
-                :class="isActive ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
-              >
-                <NuxtLink 
-                  :to="slide.link || '/shop'" 
-                  class="inline-flex items-center gap-3 bg-brand hover:bg-brand-600 text-white font-bold py-3.5 px-8 md:py-4 md:px-10 rounded-full transition-all duration-300 shadow-lg shadow-brand/30 hover:-translate-y-0.5 active:translate-y-0 text-xs md:text-sm uppercase tracking-wider group/btn"
-                >
-                  <span>Explore Collection</span>
-                  <Icon name="solar:arrow-right-bold" class="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1"/>
-                </NuxtLink>
-              </div>
+      <SwiperSlide v-for="(slide, i) in slides" :key="slide.id || i">
+        <div class="pm-wrap hero-grid">
+          <div class="hero-copy">
+            <h1 class="hero-title">{{ slide.title }}</h1>
+            <p class="hero-sub">{{ slide.subtitle }}</p>
+            <div class="hero-actions">
+              <NuxtLink :to="slide.link || '/shop'" class="pm-btn pm-btn-primary">
+                {{ slide.cta }}
+                <Icon name="solar:arrow-right-linear" class="w-4 h-4" />
+              </NuxtLink>
+              <NuxtLink to="/steal-deals" class="pm-btn pm-btn-ghost">See deals</NuxtLink>
             </div>
+          </div>
+
+          <div class="hero-stage" aria-hidden="false">
+            <div class="hero-arch arch side left" :style="{ background: toneFromHex(slide.color).tint }">
+              <GarmentArt :kind="slide.kinds[1]" :color="toneHexAt(i + 2)" />
+            </div>
+            <div class="hero-arch arch center">
+              <ArtImage
+                :src="slide.image"
+                :alt="slide.title"
+                :kind="slide.kinds[0]"
+                :color="pop[i % pop.length]"
+                :lazy="i > 0"
+                class="center-art"
+              />
+              <div class="center-glow"></div>
+            </div>
+            <div class="hero-arch arch side right" :style="{ background: toneFromHex(slide.color).tintDeep }">
+              <GarmentArt :kind="slide.kinds[2]" :color="toneHexAt(i + 5)" />
+            </div>
+            <div class="hero-floor"></div>
+
+            <NuxtLink v-if="tags(slide)" :to="`/product/${tags(slide).slug}`" class="hero-tag">
+              <span class="tag-name">{{ tags(slide).name }}</span>
+              <span class="tag-price">{{ formatBDT(tags(slide).price) }}</span>
+            </NuxtLink>
           </div>
         </div>
       </SwiperSlide>
-
-      <!-- Custom Pagination Container -->
-      <div class="absolute bottom-6 left-0 right-0 z-30 flex justify-center items-center pointer-events-none">
-        <div class="swiper-pagination-custom flex items-center gap-2 pointer-events-auto"></div>
-      </div>
-
-      <!-- Custom Navigation Buttons -->
-      <div class="hidden md:block">
-        <button class="swiper-button-prev-custom absolute left-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full border border-white/20 bg-black/30 backdrop-blur-md text-white flex items-center justify-center transition-all duration-300 hover:bg-brand hover:border-brand hover:scale-110 opacity-0 group-hover/slider:opacity-100">
-          <Icon name="solar:arrow-left-bold" class="w-6 h-6"/>
-        </button>
-        <button class="swiper-button-next-custom absolute right-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full border border-white/20 bg-black/30 backdrop-blur-md text-white flex items-center justify-center transition-all duration-300 hover:bg-brand hover:border-brand hover:scale-110 opacity-0 group-hover/slider:opacity-100">
-          <Icon name="solar:arrow-right-bold" class="w-6 h-6"/>
-        </button>
-      </div>
     </Swiper>
-  </div>
+
+    <div class="pm-wrap hero-controls">
+      <div class="hero-dots"></div>
+      <div class="hero-arrows">
+        <button class="hero-prev" aria-label="Previous slide"><Icon name="solar:arrow-left-linear" class="w-5 h-5" /></button>
+        <button class="hero-next" aria-label="Next slide"><Icon name="solar:arrow-right-linear" class="w-5 h-5" /></button>
+      </div>
+    </div>
+  </section>
 </template>
 
-<style>
-/* Custom Pagination Bullets */
-.custom-bullet {
-  width: 8px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 9999px;
+<style scoped>
+.hero {
+  background:
+    radial-gradient(60% 80% at 85% 20%, #e4e4fd 0%, transparent 70%),
+    linear-gradient(180deg, #f0f0fe 0%, #faf9f6 100%);
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 2rem;
+  padding-top: clamp(2rem, 5vw, 4rem);
+  padding-bottom: 5.5rem;
+  min-height: 620px;
+}
+.hero-title {
+  font-size: clamp(2.4rem, 5.4vw, 4.7rem);
+  line-height: 1.04;
+  font-weight: 600;
+  color: var(--brand-deep);
+  max-width: 14ch;
+  text-wrap: balance;
+}
+.hero-sub {
+  margin-top: 1.4rem;
+  max-width: 44ch;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+.hero-actions {
+  margin-top: 2.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.hero-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.78fr 1.1fr 0.78fr;
+  align-items: end;
+  gap: clamp(0.5rem, 1.4vw, 1.2rem);
+  height: clamp(340px, 52vw, 520px);
+  padding-bottom: 14px;
+}
+.side {
+  height: 76%;
+  position: relative;
+}
+.hero-arch.center {
+  height: 100%;
+  position: relative;
+  background: linear-gradient(170deg, #6b6be6 0%, #4d4ddb 45%, #2a2ad1 100%);
+}
+.center-art {
+  position: relative;
+  z-index: 1;
+}
+.center-art :deep(svg) {
+  padding-top: 14%;
+}
+.center-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 45% at 50% 30%, rgba(255, 255, 255, 0.35), transparent 70%);
+  pointer-events: none;
+}
+.side :deep(svg) {
+  padding: 22% 8% 0;
+}
+.hero-floor {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #151552 20%, #151552 80%, transparent);
+  opacity: 0.35;
+}
+.hero-tag {
+  position: absolute;
+  left: 4%;
+  bottom: 12%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 190px;
+  padding: 0.8rem 1rem;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -14px rgba(21, 21, 82, 0.45);
+  z-index: 3;
+  transition: transform 0.25s ease;
+}
+.hero-tag:hover {
+  transform: translateY(-4px);
+}
+.tag-name {
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tag-price {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.hero-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 5;
+  pointer-events: none;
+}
+.hero-controls > * {
+  pointer-events: auto;
+}
+.hero-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+.hero-arrows {
+  display: flex;
+  gap: 0.5rem;
+}
+.hero-arrows button {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--brand-deep);
+  color: var(--brand-deep);
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+.hero-arrows button:hover {
+  background: var(--brand-deep);
+  color: #fff;
+}
+:global(.hero-dot) {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #b9b9ee;
   cursor: pointer;
-  transition: all 0.4s ease;
+  transition: width 0.3s ease, background-color 0.3s;
+}
+:global(.hero-dot-active) {
+  width: 2rem;
+  background: var(--brand);
 }
 
-.custom-bullet-active {
-  width: 32px;
-  background: #ffffff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+@media (min-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 5fr 7fr;
+    gap: 3rem;
+  }
 }
-
-.hero-swiper {
-  width: 100%;
+@media (max-width: 1023px) {
+  .hero-grid {
+    padding-bottom: 6rem;
+  }
+  .hero-stage {
+    order: -1;
+    height: clamp(280px, 70vw, 420px);
+  }
+  .hero-copy {
+    text-align: left;
+  }
+}
+@media (max-width: 520px) {
+  .hero-tag {
+    left: 2%;
+    bottom: 6%;
+    max-width: 150px;
+  }
+  .hero-arrows {
+    display: none;
+  }
 }
 </style>

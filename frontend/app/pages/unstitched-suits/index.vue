@@ -1,55 +1,32 @@
 <script setup>
 const config = useRuntimeConfig();
-const { data, error, pending, refresh } = useApiFetch(
-  "/client/unstitched-products",
-  { method: "GET" }
-);
-
-const products = ref([]);
-
-watchEffect(() => {
-  if (data.value) {
-    products.value = data.value.data;
-  } else {
-    refresh();
-  }
+const { data, pending } = await useFetch(`${config.public.apiBase}/client/unstitched-products`, {
+  key: "unstitched-products",
+  lazy: true,
 });
+const products = computed(() => data.value?.data || []);
 
-watch(products, (newProducts, oldProducts) => {
-  return newProducts;
+useSeoMeta({
+  title: "Unstitched suits | Dressnio",
+  description: "Choose your fabric online and have it tailored to your measurements.",
 });
-
-let text_color = ref("");
-let thumbnail_view = ref(true);
-let list_view = ref(false);
-let productView = (listPreview) => {
-  if (listPreview == "thumbnail") {
-    thumbnail_view.value = true;
-    list_view.value = false;
-  }
-  if (listPreview == "list") {
-    list_view.value = true;
-    thumbnail_view.value = false;
-  }
-};
 </script>
 
 <template>
-  <div v-if="!pending">
-    <FeaturedBanner
-      title="Hot unstitched collection"
-      subtitle="Most people hang with this design"
+  <div>
+    <PageHero
+      title="Unstitched suits"
+      subtitle="Pick the fabric here, then have it cut to your own measurements by the tailor you trust."
+      :crumbs="[{ label: 'Unstitched suits' }]"
+      kind="unstitched"
+      color="#D49A1F"
     />
-    <div class="bg-[#C89DD8] shadow-lg py-10">
-      <Headline
-        title="UNSTITCHED SUIT SETS"
-        subtitle="Add Spark to your Special days!"
-      />
-      <Filter />
-      <Product :products="products" />
-    </div>
-  </div>
-  <div v-else>
-    <SkeletonProductFilter />
+    <section class="pm-section" style="padding-top: 2rem; background: var(--paper)">
+      <div class="pm-wrap">
+        <p v-if="pending" style="padding: 3rem 0; color: var(--ink-soft)">Loading fabrics...</p>
+        <Product v-else :products="products" empty-text="Unstitched suits will appear here soon." />
+      </div>
+    </section>
+    <SizeFit />
   </div>
 </template>

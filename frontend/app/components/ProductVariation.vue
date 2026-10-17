@@ -1,54 +1,111 @@
-<!-- ProductVariation.vue (Stories) -->
 <script setup>
-import { computed } from "vue";
-
+// "Shop by style" rail. Uses the stories managed in admin; each ring shows the photo or the drawn garment.
 const props = defineProps({
-  story: {
-    type: Array,
-    default: () => [],
-  },
+  story: { type: Array, default: () => [] },
 });
 
-const defaultStories = [
-  { id: 1, name: "Cotton 3-Piece", slug: "cotton-3-piece", image: "/brand/story-1.jpg" },
-  { id: 2, name: "Embroidered Sets", slug: "embroidered-sets", image: "/brand/story-2.jpg" },
-  { id: 3, name: "Floral Shirts", slug: "floral-shirts", image: "/brand/story-3.jpg" },
-  { id: 4, name: "Georgette Maxis", slug: "georgette-maxis", image: "/brand/story-4.jpg" },
-  { id: 5, name: "Party Gowns", slug: "party-gowns", image: "/brand/hero-festive.jpg" },
-  { id: 6, name: "Silk Sarees", slug: "silk-sarees", image: "/brand/hero-chic.jpg" },
+const defaults = [
+  { id: "d1", name: "Cotton 3-piece", slug: "cotton-3-piece", kind: "unstitched" },
+  { id: "d2", name: "Embroidered sets", slug: "embroidered-sets", kind: "kurta" },
+  { id: "d3", name: "Floral tops", slug: "floral-tops", kind: "top" },
+  { id: "d4", name: "Georgette maxis", slug: "georgette-maxis", kind: "maxi" },
+  { id: "d5", name: "Party dresses", slug: "party-dresses", kind: "dress" },
+  { id: "d6", name: "Silk sarees", slug: "silk-sarees", kind: "saree" },
+  { id: "d7", name: "Lehengas", slug: "lehengas", kind: "lehenga" },
+  { id: "d8", name: "Shrug sets", slug: "shrug-sets", kind: "shrug" },
 ];
 
-const storyList = computed(() => {
-  if (props.story && props.story.length > 0) {
-    return props.story.map((s, idx) => ({
-      ...s,
-      image: s.image || defaultStories[idx % defaultStories.length].image,
-    }));
-  }
-  return defaultStories;
+const items = computed(() => {
+  const source = props.story?.length ? props.story : defaults;
+  return source.map((s, i) => ({
+    ...s,
+    kind: s.kind || garmentKindFor(s.name, s.slug),
+    color: toneHexAt(i),
+    to: `/story/${s.slug || s.id}`,
+  }));
 });
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto pt-6 pb-6 px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-center gap-4 sm:gap-8 overflow-x-auto py-2">
-      <NuxtLink
-        v-for="item in storyList"
-        :to="`/story/${item.slug || item.id}`"
-        :key="item.id"
-        class="group flex flex-col items-center text-center flex-shrink-0"
-      >
-        <div
-          class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-2 border-2 border-brand p-0.5 group-hover:border-brand-400 transition-all duration-300 ring-2 ring-brand/20 group-hover:ring-brand/50 shadow-sm"
-        >
-          <img
-            :src="item.image"
-            :alt="item.name"
-            class="w-full h-full object-cover rounded-full transition-transform duration-500 ease-in-out group-hover:scale-110"
-          />
-        </div>
-        <span class="text-xs font-bold text-gray-800 group-hover:text-brand transition-colors whitespace-nowrap">{{ item.name }}</span>
-      </NuxtLink>
+  <section class="styles" aria-label="Shop by style">
+    <div class="pm-wrap">
+      <ul class="styles-rail no-scrollbar">
+        <li v-for="item in items" :key="item.id" class="style-item">
+          <NuxtLink :to="item.to" class="style-link">
+            <span class="style-ring">
+              <span class="style-face" :style="{ background: toneFromHex(item.color).tint }">
+                <ArtImage :src="item.image" :alt="item.name" :kind="item.kind" :color="item.color" />
+              </span>
+            </span>
+            <span class="style-name">{{ item.name }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
     </div>
-  </div>
+  </section>
 </template>
+
+<style scoped>
+.styles {
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.styles-rail {
+  list-style: none;
+  display: flex;
+  gap: clamp(1rem, 2.4vw, 2.2rem);
+  overflow-x: auto;
+  padding: 1.4rem 0 1.2rem;
+  scroll-snap-type: x proximity;
+}
+@media (min-width: 1100px) {
+  .styles-rail {
+    justify-content: center;
+  }
+}
+.style-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.style-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  width: 5.6rem;
+}
+.style-ring {
+  width: 5.2rem;
+  height: 5.2rem;
+  padding: 3px;
+  border-radius: 999px;
+  background: conic-gradient(from 210deg, #4d4ddb, #8383ed, #cdcdfa, #4d4ddb);
+  transition: transform 0.25s ease;
+}
+.style-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 3px solid var(--paper);
+  overflow: hidden;
+}
+.style-face :deep(svg) {
+  transform: scale(1.5);
+  transform-origin: 50% 24%;
+  padding: 0;
+}
+.style-face :deep(img) {
+  object-fit: cover;
+}
+.style-link:hover .style-ring {
+  transform: translateY(-3px);
+}
+.style-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink);
+}
+</style>

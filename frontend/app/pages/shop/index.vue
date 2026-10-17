@@ -1,31 +1,7 @@
 <template>
+  <div>
+    <PageHero title="Shop all" subtitle="Kurta sets, lehengas, sarees, maxis and fabrics. Filter by type, category and price." :crumbs="[{ label: 'Shop' }]" kind="kurta" />
   <div class="dn-container" style="padding-top: 2rem; padding-bottom: 5rem;">
-    <!-- Catalog Header Banner -->
-    <div
-      class="dn-card"
-      style="
-        background: linear-gradient(135deg, var(--dn-tertiary), var(--dn-tertiary-subtle));
-        color: #ffffff;
-        padding: 3rem 2rem;
-        border-radius: var(--dn-radius-2xl);
-        margin-bottom: 2.5rem;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-      "
-    >
-      <div style="position: absolute; right: -50px; top: -50px; width: 200px; height: 200px; background: var(--dn-primary); filter: blur(90px); opacity: 0.35; border-radius: 50%;"></div>
-      <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dn-secondary-light); margin-bottom: 0.5rem; display: block;">
-        Curated Fashion Collection
-      </span>
-      <h1 style="font-size: 2.5rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 0.75rem;">
-        Discover Luxury & Daily Elegance
-      </h1>
-      <p style="color: var(--dn-text-subtle); max-width: 600px; margin: 0 auto; font-size: 1rem;">
-        Explore handcrafted kurtis, salwar kameez sets, festive lehengas, and authentic raw fabrics tailored for perfection.
-      </p>
-    </div>
-
     <!-- Main Layout (Sidebar Filters + Products Grid) -->
     <div class="catalog-layout">
       <!-- Sidebar Filters -->
@@ -145,9 +121,11 @@
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup>
+useSeoMeta({ title: "Shop all | Dressnio" });
 import { ref, computed } from "vue";
 
 const config = useRuntimeConfig();

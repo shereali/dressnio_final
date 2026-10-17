@@ -30,6 +30,8 @@
       </form>
     </div>
 
+    <p v-if="notFound" role="alert" style="text-align:center;color:#c0285a;margin-bottom:1.5rem">We could not find that order. Check the order number from your confirmation and try again.</p>
+
     <!-- Order Timeline Result -->
     <div v-if="order" class="dn-card" style="padding: 2rem;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--dn-border-light); padding-bottom: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
@@ -87,11 +89,11 @@
         <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem;">Items in this parcel</h4>
         <div v-for="item in order.items" :key="item.id" style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.4rem;">
           <span>{{ item.quantity }}x {{ item.product_name }} <small v-if="item.size_name">({{ item.size_name }})</small></span>
-          <strong>৳{{ item.total_price?.toFixed(2) }}</strong>
+          <strong>{{ formatBDT(item.total_price) }}</strong>
         </div>
         <div style="border-top: 1px solid var(--dn-border); margin-top: 0.75rem; padding-top: 0.75rem; display: flex; justify-content: space-between; font-weight: 800; color: var(--dn-primary);">
           <span>Total:</span>
-          <span>৳{{ order.total_amount?.toFixed(2) }}</span>
+          <span>{{ formatBDT(order.total_amount) }}</span>
         </div>
       </div>
     </div>
@@ -99,6 +101,7 @@
 </template>
 
 <script setup>
+useSeoMeta({ title: "Track your order | Dressnio" });
 import { ref, onMounted } from "vue";
 
 const route = useRoute();
@@ -106,6 +109,7 @@ const config = useRuntimeConfig();
 const searchQuery = ref("");
 const order = ref(null);
 const isLoading = ref(false);
+const notFound = ref(false);
 
 const steps = [
   { key: "pending", title: "Order Placed", description: "Your order has been recorded and is pending confirmation", icon: "solar:cart-check-bold" },
@@ -131,6 +135,7 @@ const isStepCompleted = (stepKey) => {
 
 const fetchOrder = async () => {
   if (!searchQuery.value) return;
+  notFound.value = false;
   isLoading.value = true;
   try {
     const res = await $fetch(`${config.public.apiBase}/client/my-orders/${searchQuery.value.trim()}`);
@@ -138,7 +143,7 @@ const fetchOrder = async () => {
       order.value = res.data;
     }
   } catch (err) {
-    alert("Order not found. Please check your order tracking number.");
+    notFound.value = true;
     order.value = null;
   } finally {
     isLoading.value = false;

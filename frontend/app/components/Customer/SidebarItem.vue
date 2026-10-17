@@ -5,7 +5,7 @@
       class="group flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
       :class="[
         isActive
-          ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-sm shadow-rose-200'
+          ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-sm shadow-brand-200'
           : 'text-stone-700 hover:text-stone-900 hover:bg-stone-100/80'
       ]"
     >

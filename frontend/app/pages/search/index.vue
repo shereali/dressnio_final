@@ -1,139 +1,106 @@
+<script setup>
+// Search results from GET /client/search?q=
+const route = useRoute();
+const router = useRouter();
+const config = useRuntimeConfig();
+
+const term = ref(String(route.query.q || ""));
+const results = ref([]);
+const loading = ref(false);
+const searched = ref(false);
+
+const run = async (q) => {
+  const value = (q || "").trim();
+  if (value.length < 2) {
+    results.value = [];
+    searched.value = false;
+    return;
+  }
+  loading.value = true;
+  try {
+    const res = await $fetch(`${config.public.apiBase}/client/search`, { params: { q: value } });
+    results.value = res?.data || [];
+  } catch (e) {
+    results.value = [];
+  } finally {
+    loading.value = false;
+    searched.value = true;
+  }
+};
+
+watch(
+  () => route.query.q,
+  (q) => {
+    term.value = String(q || "");
+    run(term.value);
+  },
+  { immediate: true }
+);
+
+const submit = () => router.push({ path: "/search", query: { q: term.value.trim() } });
+
+useHead({ title: computed(() => (term.value ? `Search: ${term.value} | Dressnio` : "Search | Dressnio")) });
+</script>
+
 <template>
-  <div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-8">Product Search</h1>
+  <div class="pm-section sp">
+    <div class="pm-wrap">
+      <h1 class="sp-title">Search</h1>
+      <form class="sp-form" role="search" @submit.prevent="submit">
+        <Icon name="solar:magnifer-linear" class="w-6 h-6 sp-icon" />
+        <input v-model="term" type="search" placeholder="Search kurta, saree, lehenga..." aria-label="Search products" />
+        <button type="submit" class="pm-btn pm-btn-primary">Search</button>
+      </form>
 
-    <!-- Search Input -->
-    <div class="mb-6">
-      <label for="search" class="block text-gray-700 text-sm font-bold mb-2"
-        >Search Products:</label
-      >
-      <div class="relative">
-        <input
-          type="text"
-          id="search"
-          v-model="searchQuery"
-          @input="handleSearch"
-          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-          placeholder="Enter keywords..."
-        />
-      </div>
-    </div>
-
-    <!-- Search Results -->
-    <div v-if="searchResults.length === 0" class="text-gray-700 text-lg">
-      No results found.
-    </div>
-    <div v-else>
-      <div
-        v-for="product in searchResults"
-        :key="product.id"
-        class="flex items-center mb-6"
-      >
-        <div class="flex-shrink-0 w-52 overflow-hidden rounded-md">
-          <NuxtImg
-            :src="product.image"
-            alt="Product Image"
-            class="w-full h-full object-cover"
-          />
-        </div>
-        <div class="ml-4 flex-1">
-          <h3 class="text-lg font-semibold">{{ product.name }}</h3>
-          <p class="text-gray-700">Description: {{ product.description }}</p>
-          <p class="text-gray-700">Size: {{ product.size }}</p>
-          <p class="text-gray-700">Color: {{ product.color }}</p>
-          <div class="flex items-center mt-2 space-x-3">
-            <button
-              @click="decrementQuantity(product)"
-              class="text-gray-500 hover:text-gray-700 focus:outline-none text-2xl"
-            >
-              <Icon name="mdi:minus" />
-            </button>
-            <input
-              type="number"
-              v-model="product.quantity"
-              min="1"
-              class="w-12 px-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-            />
-            <button
-              @click="incrementQuantity(product)"
-              class="text-gray-500 hover:text-gray-700 focus:outline-none text-2xl"
-            >
-              <Icon name="mdi:plus" />
-            </button>
-            <button
-              @click="addToCart(product)"
-              class="ml-4 px-4 py-2 bg-blue-500 text-white rounded-md"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      </div>
+      <p v-if="loading" class="sp-note" role="status">Searching...</p>
+      <template v-else-if="searched">
+        <p class="sp-note" role="status">
+          {{ results.length }} {{ results.length === 1 ? "result" : "results" }} for "{{ route.query.q }}"
+        </p>
+        <Product :products="results" empty-text="No products match that search. Try another word, like kurta, saree or maxi." />
+      </template>
+      <p v-else class="sp-note">Type at least two letters to search the catalogue.</p>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from "vue";
-
-const products = [
-  {
-    id: 1,
-    name: "Product A",
-    size: "M",
-    color: "Blue",
-    image: "/images/product/p-1.webp",
-    quantity: 1,
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eu ante vel est convallis dignissim.",
-  },
-  {
-    id: 2,
-    name: "Product B",
-    size: "L",
-    color: "Red",
-    image: "/images/product/p-2.webp",
-    quantity: 1,
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eu ante vel est convallis dignissim.",
-  },
-  {
-    id: 3,
-    name: "Product B",
-    size: "L",
-    color: "Red",
-    image: "/images/product/p-3.webp",
-    quantity: 1,
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eu ante vel est convallis dignissim.",
-  },
-  // Add more products as needed
-];
-
-const searchQuery = ref("");
-const searchResults = ref([]);
-
-const handleSearch = () => {
-  // Perform live search logic here based on searchQuery
-  searchResults.value = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-};
-
-const incrementQuantity = (product) => {
-  product.quantity++;
-};
-
-const decrementQuantity = (product) => {
-  if (product.quantity > 1) {
-    product.quantity--;
-  }
-};
-
-const addToCart = (product) => {
-  // Placeholder logic for adding product to cart
-  console.log(
-    `Added ${product.name} to cart with quantity ${product.quantity}`
-  );
-};
-</script>
+<style scoped>
+.sp {
+  min-height: 60vh;
+}
+.sp-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+.sp-form {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1.5rem 0 1rem;
+  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
+  max-width: 720px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.sp-form:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(77, 77, 219, 0.14);
+}
+.sp-icon {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.sp-form input {
+  flex: 1;
+  min-width: 0;
+  height: 2.8rem;
+  font-size: 1.05rem;
+  background: transparent;
+}
+.sp-note {
+  margin: 1rem 0 1.6rem;
+  color: var(--ink-soft);
+}
+</style>

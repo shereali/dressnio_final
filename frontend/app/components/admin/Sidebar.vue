@@ -399,6 +399,12 @@ const menuGroups = [
             icon: 'solar:link-circle-bold',
           },
           {
+            id: 'config-sms',
+            label: 'SMS & Login Codes',
+            link: '/admin/configuration/sms',
+            icon: 'solar:chat-round-dots-bold',
+          },
+          {
             id: 'config-insta',
             label: 'Instagram Feed',
             link: '/admin/configuration/instagram',

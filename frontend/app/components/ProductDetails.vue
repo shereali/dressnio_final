@@ -1,334 +1,694 @@
 <script setup>
-import { ref, computed, watchEffect } from "vue";
-import { useRouter, useRoute } from "vue-router";
+// Product page: gallery, colour and size choice, live pricing, bag, buy now and order on WhatsApp.
 import { useCartStore } from "~/stores/cart";
+import { useWishlistStore } from "~/stores/wishlist";
 
 const router = useRouter();
 const route = useRoute();
 const config = useRuntimeConfig();
 const cartStore = useCartStore();
+const wishlist = useWishlistStore();
+const snackbar = useSnackbar();
+const { whatsappUrl, freeShippingAbove } = useStoreSettings();
+const pageUrl = useRequestURL();
 
-const activeImageIndex = ref(0);
-const quantity = ref(1);
-const selectedSize = ref("");
-const selectedColor = ref("");
-const activeTab = ref("details");
-
-const slug = computed(() => route.params.slug);
-
-const { data, pending, error } = useFetch(
-  `${config.public.apiBase}/client/product-details/${slug.value}`,
-  {
-    key: `product-details-${slug.value}`,
-  }
+const { data, pending } = await useFetch(
+  () => `${config.public.apiBase}/client/product-details/${route.params.slug}`,
+  { key: `product-details-${route.params.slug}`, lazy: true }
 );
 
-const product = computed(() => data.value?.data || {});
+const product = computed(() => data.value?.data || null);
 
-// Calculate prices map
-const pricesMap = computed(() => {
-  const map = {};
-  if (product.value.sizes && Array.isArray(product.value.sizes)) {
-    product.value.sizes.forEach((sz, idx) => {
-      const key = sz.standard || sz.name;
-      const priceVal = product.value.prices && product.value.prices[idx]
-        ? (product.value.prices[idx][key] || product.value.prices[idx].price || product.value.price?.price || 0)
-        : (product.value.price?.price || 0);
-      map[key] = priceVal;
-    });
+const quantity = ref(1);
+const size = ref("");
+const color = ref("");
+const activeImage = ref(0);
+const guideOpen = ref(false);
+const tab = ref("details");
+
+const sizes = computed(() => (product.value?.sizes || []).map((s) => s.standard || s.name).filter(Boolean));
+const colors = computed(() =>
+  (product.value?.colors || [])
+    .map((c) => c.color_code)
+    .filter((c) => c && /^#?[0-9a-f]{3,6}$/i.test(String(c).replace("#", "")))
+    .map((c) => (String(c).startsWith("#") ? c : `#${c}`))
+);
+
+watch(
+  product,
+  (p) => {
+    if (!p) return;
+    size.value = "";
+    activeImage.value = 0;
+    quantity.value = 1;
+    color.value = colors.value[0] || "";
+  },
+  { immediate: true }
+);
+
+const info = computed(() => priceInfo(product.value || {}, size.value));
+const kind = computed(() =>
+  garmentKindFor(product.value?.categories?.[0]?.name, product.value?.cloth_type, product.value?.name)
+);
+const artColor = computed(() => color.value || toneHexAt(Number(product.value?.id) || 0));
+
+const photos = computed(() => {
+  const list = (product.value?.gallery || [])
+    .map((g) => g.media_url || g.url || g.image)
+    .filter((u) => u && !isDrawableOnly(u));
+  if (product.value?.image && !isDrawableOnly(product.value.image) && !list.includes(product.value.image)) {
+    list.unshift(product.value.image);
   }
-  return map;
+  return list;
 });
 
-watchEffect(() => {
-  if (product.value && product.value.id) {
-    if (!selectedSize.value && product.value.sizes?.length) {
-      selectedSize.value = product.value.sizes[0].standard || product.value.sizes[0].name;
-    }
-    if (!selectedColor.value && product.value.colors?.length) {
-      selectedColor.value = product.value.colors[0].color_code || product.value.colors[0].name;
-    }
-  }
+const stock = computed(() => Number(product.value?.stock_available ?? 0));
+const soldOut = computed(() => stock.value <= 0);
+const lowStock = computed(() => stock.value > 0 && stock.value <= 5);
+const saved = computed(() => wishlist.ids.includes(product.value?.id));
+const needsSize = computed(() => !!product.value?.is_size_visible && sizes.value.length > 0);
+const total = computed(() => info.value.sale * quantity.value);
+const toFreeDelivery = computed(() => Math.max(0, freeShippingAbove.value - total.value));
+
+const cartItem = () => ({
+  id: product.value.id,
+  name: product.value.name,
+  image: photos.value[0] || null,
+  size: needsSize.value ? size.value : null,
+  color: color.value || null,
+  quantity: quantity.value,
+  price: info.value.sale,
+  is_size_visible: needsSize.value,
 });
 
-const currentUnitPrice = computed(() => {
-  if (product.value.is_size_visible && selectedSize.value && pricesMap.value[selectedSize.value]) {
-    return parseFloat(pricesMap.value[selectedSize.value]);
+const guard = () => {
+  if (soldOut.value) return false;
+  if (needsSize.value && !size.value) {
+    snackbar.add({ type: "error", text: "Choose a size first" });
+    return false;
   }
-  return parseFloat(product.value.price?.price || product.value.base_price || 0);
-});
-
-const formattedPrice = computed(() => {
-  return (currentUnitPrice.value * quantity.value).toFixed(2);
-});
-
-const mediaList = computed(() => {
-  if (product.value.media && product.value.media.length > 0) {
-    return product.value.media.map(m => m.url || m.media_url || m.file_url || '/brand/hero-chic.jpg');
-  }
-  if (product.value.image) {
-    return [product.value.image];
-  }
-  return ['/brand/hero-chic.jpg'];
-});
-
-const incrementQuantity = () => {
-  quantity.value++;
+  return true;
 };
 
-const decrementQuantity = () => {
-  if (quantity.value > 1) {
-    quantity.value--;
-  }
-};
-
-const addToCart = () => {
-  const item = {
-    id: product.value.id,
-    name: product.value.name,
-    image: mediaList.value[activeImageIndex.value] || mediaList.value[0],
-    size: product.value.is_size_visible ? selectedSize.value : null,
-    color: product.value.is_color_visible ? selectedColor.value : null,
-    quantity: quantity.value,
-    price: currentUnitPrice.value,
-    is_size_visible: product.value.is_size_visible,
-  };
-
-  cartStore.addToCart(item);
+const addToBag = () => {
+  if (!guard()) return false;
+  const ok = cartStore.addToCart(cartItem());
+  if (ok) snackbar.add({ type: "success", text: "Added to your bag" });
+  return ok;
 };
 
 const buyNow = () => {
-  addToCart();
-  router.push("/checkout");
+  if (!guard()) return;
+  if (cartStore.addToCart(cartItem())) {
+    cartStore.closeCart();
+    router.push("/checkout");
+  }
 };
+
+const toggleSave = async () => {
+  const added = await wishlist.toggle(product.value.id);
+  snackbar.add({ type: "success", text: added ? "Saved to your wishlist" : "Removed from your wishlist" });
+};
+
+const waLink = computed(() => {
+  if (!whatsappUrl.value || !product.value) return "";
+  const lines = [
+    `Hi Dressnio, I would like to order:`,
+    product.value.name,
+    size.value ? `Size: ${size.value}` : "",
+    color.value ? `Colour: ${color.value}` : "",
+    `Quantity: ${quantity.value}`,
+    `Price: ${formatBDT(total.value)}`,
+    pageUrl.href,
+  ].filter(Boolean);
+  return `${whatsappUrl.value}?text=${encodeURIComponent(lines.join("\n"))}`;
+});
+
+const plain = computed(() => (product.value?.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+
+useSeoMeta({
+  title: () => (product.value ? `${product.value.name} | Dressnio` : "Product | Dressnio"),
+  description: () => plain.value.slice(0, 155) || "Shop at Dressnio. Cash on delivery across Bangladesh.",
+  ogImage: () => photos.value[0] || undefined,
+});
+
+useHead({
+  script: computed(() =>
+    product.value
+      ? [
+          {
+            type: "application/ld+json",
+            innerHTML: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: product.value.name,
+              description: plain.value,
+              image: photos.value,
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "BDT",
+                price: Math.round(info.value.sale),
+                availability: soldOut.value ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+              },
+            }),
+          },
+        ]
+      : []
+  ),
+});
 </script>
 
 <template>
-  <div class="dn-container" style="padding-top: 2rem; padding-bottom: 4rem;">
-    <!-- Loading Skeleton -->
-    <div v-if="pending" style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;">
-      <div class="dn-skeleton" style="height: 520px; border-radius: var(--dn-radius-xl);"></div>
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <div class="dn-skeleton" style="height: 40px; width: 80%;"></div>
-        <div class="dn-skeleton" style="height: 30px; width: 40%;"></div>
-        <div class="dn-skeleton" style="height: 120px; width: 100%;"></div>
+  <div class="pd">
+    <div class="pm-wrap">
+      <nav v-if="product" class="pd-crumbs" aria-label="Breadcrumb">
+        <NuxtLink to="/">Home</NuxtLink>
+        <Icon name="solar:alt-arrow-right-linear" class="w-3.5 h-3.5" />
+        <NuxtLink to="/shop">Shop</NuxtLink>
+        <template v-if="product.categories?.[0]">
+          <Icon name="solar:alt-arrow-right-linear" class="w-3.5 h-3.5" />
+          <NuxtLink :to="`/category/${product.categories[0].slug}`">{{ product.categories[0].name }}</NuxtLink>
+        </template>
+      </nav>
+
+      <div v-if="pending" class="pd-grid">
+        <div class="skel" style="aspect-ratio: 4/5"></div>
+        <div class="pd-info"><div class="skel" style="height: 3rem"></div><div class="skel" style="height: 8rem"></div></div>
+      </div>
+
+      <div v-else-if="product" class="pd-grid">
+        <div class="pd-gallery">
+          <div class="pd-main" :style="{ background: toneFromHex(artColor).tint }">
+            <ArtImage
+              :src="photos[activeImage] || null"
+              :alt="product.name"
+              :kind="kind"
+              :color="artColor"
+              :lazy="false"
+            />
+            <button
+              type="button"
+              class="pd-heart"
+              :class="{ on: saved }"
+              :aria-pressed="saved"
+              :aria-label="saved ? 'Remove from wishlist' : 'Save to wishlist'"
+              @click="toggleSave"
+            >
+              <Icon :name="saved ? 'solar:heart-bold' : 'solar:heart-linear'" class="w-6 h-6" />
+            </button>
+          </div>
+          <div v-if="photos.length > 1" class="pd-thumbs">
+            <button
+              v-for="(p, i) in photos"
+              :key="p"
+              type="button"
+              :class="{ on: activeImage === i }"
+              :aria-label="`Show photo ${i + 1}`"
+              @click="activeImage = i"
+            >
+              <img :src="p" alt="" loading="lazy" />
+            </button>
+          </div>
+        </div>
+
+        <div class="pd-info">
+          <h1 class="pd-title">{{ product.name }}</h1>
+
+          <div class="pd-price">
+            <span class="pd-sale">{{ formatBDT(info.sale) }}</span>
+            <span v-if="info.percent > 0" class="pd-list">{{ formatBDT(info.list) }}</span>
+            <span v-if="info.percent > 0" class="pd-off">{{ Math.round(info.percent) }}% off</span>
+          </div>
+
+          <p class="pd-stock" :class="{ out: soldOut, low: lowStock }">
+            <Icon :name="soldOut ? 'solar:close-circle-bold' : 'solar:check-circle-bold'" class="w-5 h-5" />
+            <template v-if="soldOut">Sold out</template>
+            <template v-else-if="lowStock">Only {{ stock }} left</template>
+            <template v-else>In stock</template>
+          </p>
+
+          <div v-if="colors.length" class="pd-block">
+            <p class="pd-label">Colour</p>
+            <div class="pd-sw" role="radiogroup" aria-label="Colour">
+              <button
+                v-for="c in colors"
+                :key="c"
+                type="button"
+                role="radio"
+                :aria-checked="color === c"
+                :aria-label="`Colour ${c}`"
+                :class="{ on: color === c }"
+                :style="{ '--sw': c }"
+                @click="color = c"
+              ></button>
+            </div>
+          </div>
+
+          <div v-if="needsSize" class="pd-block">
+            <div class="pd-label-row">
+              <p class="pd-label">Size <span v-if="size">: {{ size }}</span></p>
+              <button type="button" class="pd-link" @click="guideOpen = true">Size guide</button>
+            </div>
+            <div class="pd-sizes" role="radiogroup" aria-label="Size">
+              <button v-for="s in sizes" :key="s" type="button" role="radio" :aria-checked="size === s" :class="{ on: size === s }" @click="size = s">{{ s }}</button>
+            </div>
+          </div>
+
+          <div class="pd-buy">
+            <div class="pd-qty" aria-label="Quantity">
+              <button type="button" aria-label="Decrease quantity" @click="quantity = Math.max(1, quantity - 1)"><Icon name="solar:minus-circle-linear" class="w-5 h-5" /></button>
+              <span aria-live="polite">{{ quantity }}</span>
+              <button type="button" aria-label="Increase quantity" @click="quantity++"><Icon name="solar:add-circle-linear" class="w-5 h-5" /></button>
+            </div>
+            <button type="button" class="pm-btn pm-btn-primary pd-add" :disabled="soldOut" @click="addToBag">
+              <Icon name="solar:bag-3-linear" class="w-5 h-5" />
+              {{ soldOut ? "Sold out" : `Add to bag, ${formatBDT(total)}` }}
+            </button>
+          </div>
+          <div class="pd-buy2">
+            <button type="button" class="pm-btn pm-btn-ghost" :disabled="soldOut" @click="buyNow">Buy now</button>
+            <a v-if="waLink" :href="waLink" target="_blank" rel="noopener" class="pm-btn pd-wa">
+              <Icon name="ic:baseline-whatsapp" class="w-5 h-5" />
+              Order on WhatsApp
+            </a>
+          </div>
+          <p v-if="toFreeDelivery > 0 && !soldOut" class="pd-note">Add {{ formatBDT(toFreeDelivery) }} more to get free delivery.</p>
+          <p v-else-if="!soldOut" class="pd-note ok">This order qualifies for free delivery.</p>
+
+          <ul class="pd-promises">
+            <li><Icon name="solar:wallet-money-bold-duotone" class="w-6 h-6" /><span><b>Cash on delivery</b>Pay when it arrives</span></li>
+            <li><Icon name="solar:delivery-bold-duotone" class="w-6 h-6" /><span><b>{{ STORE_POLICY.deliveryInsideCity }} in your city</b>{{ STORE_POLICY.deliveryOutsideCity }} elsewhere</span></li>
+            <li><Icon name="solar:refresh-circle-bold-duotone" class="w-6 h-6" /><span><b>{{ STORE_POLICY.exchangeWindow }} size exchange</b>If it does not fit</span></li>
+          </ul>
+
+          <div class="pd-tabs" role="tablist">
+            <button role="tab" :aria-selected="tab === 'details'" :class="{ on: tab === 'details' }" @click="tab = 'details'">Details</button>
+            <button role="tab" :aria-selected="tab === 'care'" :class="{ on: tab === 'care' }" @click="tab = 'care'">Fabric and care</button>
+          </div>
+          <div class="pd-tab" role="tabpanel">
+            <div v-if="tab === 'details'">
+              <div v-if="product.description" class="pd-rich" v-html="product.description"></div>
+              <p v-else class="pd-rich">Details for this piece are being added.</p>
+            </div>
+            <ul v-else class="pd-care">
+              <li v-if="product.fabric_type">Fabric type: {{ product.fabric_type }}</li>
+              <li>Wash gently in cold water with a mild detergent.</li>
+              <li>Dry in the shade and iron on the reverse side.</li>
+              <li>Colours may look slightly different on screen.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="pd-missing">
+        <GarmentArt kind="dress" color="#8383ED" class="pd-missing-art" />
+        <h1>We could not find that product</h1>
+        <p>It may have been removed or sold out. Browse the shop to see what is available.</p>
+        <NuxtLink to="/shop" class="pm-btn pm-btn-primary">Go to the shop</NuxtLink>
       </div>
     </div>
 
-    <!-- Product Layout -->
-    <div v-else-if="product && product.id" class="product-layout-grid">
-      <!-- Left: Media Gallery -->
-      <div>
-        <!-- Main Large Image -->
-        <div class="dn-card" style="aspect-ratio: 3/4; overflow: hidden; margin-bottom: 1rem; border-radius: var(--dn-radius-xl);">
-          <img
-            :src="mediaList[activeImageIndex]"
-            :alt="product.name"
-            style="width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: transform 0.4s ease;"
-          />
+    <!-- Size guide -->
+    <div v-if="guideOpen" class="modal" role="dialog" aria-modal="true" aria-label="Size guide" @click.self="guideOpen = false" @keydown.esc="guideOpen = false">
+      <div class="modal-card">
+        <div class="modal-top">
+          <h2>Size guide</h2>
+          <button type="button" aria-label="Close size guide" @click="guideOpen = false"><Icon name="solar:close-circle-linear" class="w-6 h-6" /></button>
         </div>
-
-        <!-- Thumbnails -->
-        <div v-if="mediaList.length > 1" style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
-          <button
-            v-for="(img, idx) in mediaList"
-            :key="idx"
-            type="button"
-            class="dn-card"
-            :style="{
-              width: '72px',
-              height: '96px',
-              flexShrink: 0,
-              padding: 0,
-              cursor: 'pointer',
-              border: activeImageIndex === idx ? '2px solid var(--dn-primary)' : '1px solid var(--dn-border)'
-            }"
-            @click="activeImageIndex = idx"
-          >
-            <img :src="img" :alt="`${product.name} ${idx}`" style="width: 100%; height: 100%; object-fit: cover;" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Right: Product Details & Purchase Actions -->
-      <div style="display: flex; flex-direction: column;">
-        <!-- Category & Title -->
-        <span v-if="product.categories?.[0]?.name" class="dn-product-category" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-          {{ product.categories[0].name }}
-        </span>
-
-        <h1 style="font-size: 1.85rem; font-weight: 800; color: var(--dn-tertiary); line-height: 1.3; margin-bottom: 0.75rem;">
-          {{ product.name }}
-        </h1>
-
-        <!-- Rating & Stock Badge -->
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;">
-          <div style="display: flex; align-items: center; color: var(--dn-accent-gold); font-size: 0.95rem;">
-            <Icon name="solar:star-bold" />
-            <Icon name="solar:star-bold" />
-            <Icon name="solar:star-bold" />
-            <Icon name="solar:star-bold" />
-            <Icon name="solar:star-bold" />
-            <span style="color: var(--dn-text-muted); font-size: 0.8rem; margin-left: 0.35rem;">(5.0 • 48 reviews)</span>
-          </div>
-
-          <span class="dn-status-badge dn-status-delivered" style="font-size: 0.75rem;">
-            <Icon name="solar:check-circle-bold" /> In Stock & Ready to Ship
-          </span>
-        </div>
-
-        <!-- Price Section -->
-        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.5rem; background: var(--dn-surface-muted); padding: 1rem 1.25rem; border-radius: var(--dn-radius-md); border: 1px solid var(--dn-border-light);">
-          <span style="font-size: 2rem; font-weight: 900; color: var(--dn-primary);">৳{{ formattedPrice }}</span>
-          <span v-if="product.old_price" style="font-size: 1.15rem; color: var(--dn-text-subtle); text-decoration: line-through;">
-            ৳{{ product.old_price }}
-          </span>
-          <span v-if="product.discount > 0" class="dn-product-badge dn-badge-sale" style="position: static;">
-            Save {{ product.discount }}%
-          </span>
-        </div>
-
-        <!-- Color Selection -->
-        <div v-if="product.is_color_visible && product.colors?.length" style="margin-bottom: 1.5rem;">
-          <label class="dn-label" style="margin-bottom: 0.5rem;">
-            Color: <strong style="color: var(--dn-primary);">{{ selectedColor }}</strong>
-          </label>
-          <div style="display: flex; gap: 0.6rem;">
-            <button
-              v-for="(color, idx) in product.colors"
-              :key="idx"
-              type="button"
-              class="dn-swatch"
-              :class="{ active: selectedColor === (color.color_code || color.name) }"
-              :style="{ backgroundColor: color.color_code || '#4D4DDB', width: '2rem', height: '2rem' }"
-              :title="color.name || color.color_code"
-              @click="selectedColor = (color.color_code || color.name)"
-            ></button>
-          </div>
-        </div>
-
-        <!-- Size Selection -->
-        <div v-if="product.is_size_visible && product.sizes?.length" style="margin-bottom: 1.75rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-            <label class="dn-label">
-              Size: <strong style="color: var(--dn-primary);">{{ selectedSize }}</strong>
-            </label>
-            <span style="font-size: 0.8rem; color: var(--dn-secondary); cursor: pointer; text-decoration: underline;">
-              Size Guide
-            </span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-            <button
-              v-for="(size, idx) in product.sizes"
-              :key="idx"
-              type="button"
-              class="dn-size-chip"
-              :class="{ active: selectedSize === (size.standard || size.name) }"
-              style="padding: 0.5rem 1rem; font-size: 0.85rem;"
-              @click="selectedSize = (size.standard || size.name)"
-            >
-              {{ size.standard || size.name }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Quantity & Primary CTA Buttons -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-          <!-- Quantity Counter -->
-          <div style="display: inline-flex; align-items: center; border: 1.5px solid var(--dn-border); border-radius: var(--dn-radius-lg); background: var(--dn-surface); padding: 3px;">
-            <button
-              type="button"
-              @click="decrementQuantity"
-              style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
-              title="Decrease quantity"
-            >
-              <Icon name="solar:minus-bold" style="font-size: 1.15rem;" />
-            </button>
-            <span style="font-weight: 800; min-width: 2.75rem; text-align: center; font-size: 1.05rem; color: var(--dn-tertiary);">{{ quantity }}</span>
-            <button
-              type="button"
-              @click="incrementQuantity"
-              style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--dn-radius-md); background: var(--dn-bg-subtle); color: var(--dn-text-main); cursor: pointer; transition: all 0.2s;"
-              title="Increase quantity"
-            >
-              <Icon name="solar:add-bold" style="font-size: 1.15rem;" />
-            </button>
-          </div>
-
-          <!-- Add to Cart Button (Primary #4D4DDB) -->
-          <button
-            type="button"
-            class="dn-btn dn-btn-primary dn-btn-add-to-cart"
-            style="flex: 1; min-width: 160px;"
-            @click="addToCart"
-          >
-            <Icon name="solar:bag-3-bold" style="font-size: 1.25rem;" />
-            <span>Add to Cart</span>
-          </button>
-
-          <!-- Buy Now Button (Instant Checkout) -->
-          <button
-            type="button"
-            class="dn-btn dn-btn-dark"
-            style="flex: 1; min-width: 160px;"
-            @click="buyNow"
-          >
-            <Icon name="solar:bolt-bold" style="font-size: 1.25rem;" />
-            <span>Buy Now</span>
-          </button>
-        </div>
-
-        <!-- Delivery & Service Highlights -->
-        <div class="dn-card" style="padding: 1.25rem; background: var(--dn-surface-muted); margin-bottom: 2rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <Icon name="solar:delivery-bold" style="color: var(--dn-primary); font-size: 1.25rem;" />
-              <div>
-                <strong>Dhaka 24-48h</strong>
-                <span style="display: block; font-size: 0.75rem; color: var(--dn-text-muted);">Nationwide 48-72h</span>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <Icon name="solar:hand-money-bold" style="color: var(--dn-accent-emerald); font-size: 1.25rem;" />
-              <div>
-                <strong>Cash on Delivery</strong>
-                <span style="display: block; font-size: 0.75rem; color: var(--dn-text-muted);">Pay upon inspection</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Description & Fabric Details -->
-        <div class="dn-card" style="padding: 1.5rem;">
-          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 0.75rem;">
-            Product Details & Fabric
-          </h3>
-          <div
-            v-if="product.description"
-            style="color: var(--dn-text-muted); font-size: 0.925rem; line-height: 1.7;"
-            v-html="product.description"
-          ></div>
-          <p v-else style="color: var(--dn-text-muted); font-size: 0.925rem; line-height: 1.7;">
-            Experience unparalleled elegance with our curated collection of festive and daily wear garments. Crafted with breathable premium fabrics and tailored with meticulous care.
-          </p>
-        </div>
+        <table>
+          <thead><tr><th>Size</th><th>Bust (in)</th><th>Hip (in)</th></tr></thead>
+          <tbody>
+            <tr v-for="r in SIZE_CHART" :key="r.size" :class="{ hit: size === r.size }">
+              <td>{{ r.size }}</td>
+              <td>{{ Math.floor(r.bust[0]) }} to {{ Math.ceil(r.bust[1]) }}</td>
+              <td>{{ Math.floor(r.hip[0]) }} to {{ Math.ceil(r.hip[1]) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="modal-note">Measurements are body measurements. Between sizes, take the larger one.</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.product-layout-grid {
+.pd {
+  background: var(--paper);
+  padding: 1.4rem 0 4rem;
+}
+.pd-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.4rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+.pd-crumbs a:hover {
+  color: var(--brand);
+}
+.pd-grid {
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
-  gap: 3.5rem;
+  gap: 2rem;
   align-items: start;
 }
-
-@media (max-width: 991px) {
-  .product-layout-grid {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+@media (min-width: 900px) {
+  .pd-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
   }
+  .pd-gallery {
+    position: sticky;
+    top: 6rem;
+  }
+}
+.pd-main {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 24px;
+  overflow: hidden;
+}
+.pd-main :deep(.art-drawn) {
+  padding: 8% 14% 4%;
+}
+.pd-heart {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-soft);
+}
+.pd-heart.on,
+.pd-heart:hover {
+  color: #e0396b;
+}
+.pd-thumbs {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  overflow-x: auto;
+}
+.pd-thumbs button {
+  flex: 0 0 4.5rem;
+  height: 5.6rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+.pd-thumbs button.on {
+  border-color: var(--brand);
+}
+.pd-thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pd-title {
+  font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+  line-height: 1.1;
+  font-weight: 600;
+  color: var(--brand-deep);
+  text-wrap: balance;
+}
+.pd-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.pd-sale {
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+.pd-list {
+  color: #8b8ba3;
+  text-decoration: line-through;
+}
+.pd-off {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #fde7ee;
+  color: #c0285a;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.pd-stock {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #0f8a5f;
+}
+.pd-stock.low {
+  color: #b86e00;
+}
+.pd-stock.out {
+  color: #c0285a;
+}
+.pd-block {
+  margin-top: 1.5rem;
+}
+.pd-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pd-label {
+  margin-bottom: 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.pd-label-row .pd-label {
+  margin-bottom: 0.6rem;
+}
+.pd-link {
+  margin-bottom: 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pd-sw,
+.pd-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.pd-sw button {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.pd-sw button.on {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+.pd-sizes button {
+  min-width: 3.1rem;
+  height: 2.8rem;
+  padding: 0 0.9rem;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 500;
+}
+.pd-sizes button:hover {
+  border-color: var(--brand);
+}
+.pd-sizes button.on {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.pd-buy {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1.8rem;
+}
+.pd-qty {
+  display: inline-flex;
+  align-items: center;
+  height: 3rem;
+  padding: 0 0.4rem;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.pd-qty button {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  color: var(--brand);
+}
+.pd-qty span {
+  min-width: 1.7rem;
+  text-align: center;
+  font-weight: 700;
+}
+.pd-add {
+  flex: 1;
+}
+.pd-add:disabled,
+.pd-buy2 .pm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pd-buy2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+.pd-wa {
+  background: #1faa59;
+  color: #fff;
+}
+.pd-wa:hover {
+  background: #168a47;
+}
+.pd-note {
+  margin-top: 0.9rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.pd-note.ok {
+  color: #0f8a5f;
+}
+.pd-promises {
+  list-style: none;
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.8rem 0;
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.pd-promises li {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  color: var(--brand);
+}
+.pd-promises span {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.pd-promises b {
+  display: block;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+.pd-tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.pd-tabs button {
+  padding: 0.7rem 0;
+  font-weight: 600;
+  color: var(--ink-soft);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.pd-tabs button.on {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.pd-tab {
+  padding: 1.2rem 0;
+  color: var(--ink-soft);
+  line-height: 1.75;
+}
+.pd-care {
+  padding-left: 1.2rem;
+}
+.pd-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem 0;
+  text-align: center;
+}
+.pd-missing h1 {
+  font-size: 2rem;
+  color: var(--brand-deep);
+}
+.pd-missing-art {
+  width: 150px;
+  height: 200px;
+}
+.skel {
+  border-radius: 20px;
+  background: linear-gradient(90deg, #eee 25%, #f6f6fb 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: sh 1.4s infinite;
+}
+@keyframes sh {
+  to {
+    background-position: -200% 0;
+  }
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(21, 21, 82, 0.55);
+}
+.modal-card {
+  width: min(100%, 460px);
+  padding: 1.5rem;
+  border-radius: 22px;
+  background: #fff;
+}
+.modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.modal-top h2 {
+  font-size: 1.6rem;
+  color: var(--brand-deep);
+}
+.modal table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.modal th,
+.modal td {
+  padding: 0.6rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.modal tr.hit td {
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-weight: 700;
+}
+.modal-note {
+  margin-top: 0.9rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
 }
 </style>

@@ -11,7 +11,7 @@
       />
       <button
         @click="removeFromWishlist"
-        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-stone-500 hover:text-rose-600 hover:bg-white flex items-center justify-center shadow-sm transition-all"
+        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-stone-500 hover:text-brand-600 hover:bg-white flex items-center justify-center shadow-sm transition-all"
         title="Remove from Wishlist"
       >
         <Icon name="solar:trash-bin-trash-bold" class="w-4 h-4" />
@@ -23,15 +23,15 @@
       <div>
         <NuxtLink
           :to="productSlug ? `/product/${productSlug}` : '#'"
-          class="font-semibold text-stone-900 text-sm hover:text-rose-600 line-clamp-2 transition-colors"
+          class="font-semibold text-stone-900 text-sm hover:text-brand-600 line-clamp-2 transition-colors"
         >
           {{ productName }}
         </NuxtLink>
 
         <div class="flex items-baseline gap-2 mt-2">
-          <span class="text-base font-extrabold text-stone-900">৳{{ productPrice.toFixed(2) }}</span>
+          <span class="text-base font-extrabold text-stone-900">{{ formatBDT(productPrice) }}</span>
           <span v-if="productRegularPrice > productPrice" class="text-xs text-stone-400 line-through">
-            ৳{{ productRegularPrice.toFixed(2) }}
+            {{ formatBDT(productRegularPrice) }}
           </span>
         </div>
       </div>

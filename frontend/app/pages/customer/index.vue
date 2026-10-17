@@ -4,7 +4,7 @@
       <!-- Welcome Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-stone-100">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-rose-500">Customer Account</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-brand-500">Customer Account</span>
           <h1 class="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1">
             Welcome back, {{ customer?.name || 'Valued Shopper' }}
           </h1>
@@ -48,7 +48,7 @@
 
         <!-- Cart Items -->
         <div class="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 sm:p-5">
-          <div class="w-10 h-10 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center mb-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-100/70 text-brand-600 flex items-center justify-center mb-3">
             <Icon name="solar:cart-large-minimalistic-bold-duotone" class="w-5 h-5" />
           </div>
           <p class="text-xs font-semibold text-stone-500 uppercase">In Cart</p>
@@ -75,10 +75,10 @@
         <div class="border border-stone-200/90 rounded-2xl p-5 sm:p-6 bg-white">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-stone-900 text-base flex items-center gap-2">
-              <Icon name="solar:user-bold" class="w-4 h-4 text-rose-500" />
+              <Icon name="solar:user-bold" class="w-4 h-4 text-brand-500" />
               <span>Personal Details</span>
             </h3>
-            <NuxtLink to="/customer/profile" class="text-xs font-semibold text-rose-600 hover:text-rose-700">
+            <NuxtLink to="/customer/profile" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
               Edit
             </NuxtLink>
           </div>
@@ -102,10 +102,10 @@
         <div class="border border-stone-200/90 rounded-2xl p-5 sm:p-6 bg-white">
           <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-stone-900 text-base flex items-center gap-2">
-              <Icon name="solar:map-point-bold" class="w-4 h-4 text-rose-500" />
+              <Icon name="solar:map-point-bold" class="w-4 h-4 text-brand-500" />
               <span>Default Shipping Address</span>
             </h3>
-            <NuxtLink to="/customer/profile" class="text-xs font-semibold text-rose-600 hover:text-rose-700">
+            <NuxtLink to="/customer/profile" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
               Edit
             </NuxtLink>
           </div>
@@ -128,13 +128,13 @@
       <div>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold text-stone-900 flex items-center gap-2">
-            <Icon name="solar:bag-check-bold" class="w-5 h-5 text-rose-500" />
+            <Icon name="solar:bag-check-bold" class="w-5 h-5 text-brand-500" />
             <span>Recent Orders</span>
           </h2>
           <NuxtLink
             v-if="ordersList.length > 0"
             to="/customer/order"
-            class="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+            class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1"
           >
             <span>View All</span>
             <Icon name="solar:alt-arrow-right-linear" class="w-3.5 h-3.5" />
@@ -143,7 +143,7 @@
 
         <!-- Loading State -->
         <div v-if="pendingOrders" class="py-12 text-center">
-          <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-rose-500 mx-auto mb-2" />
+          <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-brand-500 mx-auto mb-2" />
           <p class="text-sm text-stone-500">Loading your orders...</p>
         </div>
 
@@ -152,7 +152,7 @@
           v-else-if="ordersList.length === 0"
           class="text-center py-12 px-4 rounded-2xl bg-stone-50 border border-stone-200/70"
         >
-          <div class="w-14 h-14 rounded-2xl bg-rose-100/60 text-rose-500 flex items-center justify-center mx-auto mb-3">
+          <div class="w-14 h-14 rounded-2xl bg-brand-100/60 text-brand-500 flex items-center justify-center mx-auto mb-3">
             <Icon name="solar:bag-3-bold" class="w-7 h-7" />
           </div>
           <h4 class="font-bold text-stone-800 text-base">No orders placed yet</h4>

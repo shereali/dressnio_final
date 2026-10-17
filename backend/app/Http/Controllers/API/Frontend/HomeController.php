@@ -133,13 +133,16 @@ class HomeController extends Controller
      */
     public function getStoryProducts(string $slug): JsonResponse
     {
-        $story = Story::where('title', $slug)->orWhere('id', $slug)->first();
+        $story = Story::with([
+            'media',
+            'products' => fn ($q) => $q->where('is_active', true)->with(['media', 'price', 'prices.size', 'sizes', 'colors', 'categories', 'stocks']),
+        ])->where('slug', $slug)->orWhere('id', $slug)->first();
 
         if (! $story) {
             return ApiResponse::notFound('Story not found');
         }
 
-        return ApiResponse::success($story);
+        return ApiResponse::success(new StoryResource($story));
     }
 
     /**

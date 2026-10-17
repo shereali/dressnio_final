@@ -11,6 +11,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['"Bodoni Moda"', "Georgia", "serif"],
+        sans: ['"DM Sans"', '"Hind Siliguri"', "system-ui", "sans-serif"],
+      },
       colors: {
         brand: {
           50: '#f0f0fe',

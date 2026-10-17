@@ -1,0 +1,152 @@
+/* Dressnio storefront: typography, arch motif and shared section rhythm.
+   Brand colours stay as defined in the theme (indigo #4D4DDB family). */
+
+:root {
+  --font-display: "Bodoni Moda", Georgia, serif;
+  --font-body: "DM Sans", "Hind Siliguri", system-ui, sans-serif;
+  --brand: #4d4ddb;
+  --brand-deep: #151552;
+  --brand-tint: #f0f0fe;
+  --paper: #faf9f6;
+  --ink: #14142b;
+  --ink-soft: #55556e;
+  --line: #e4e4f2;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Section rhythm used by every homepage block */
+.pm-section {
+  padding: clamp(3.5rem, 7vw, 6.5rem) 0;
+}
+.pm-wrap {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
+}
+
+/* The arch: Dressnio's recurring frame. Straight bottom so it stands on a floor line. */
+.arch {
+  border-radius: 999px 999px 0 0;
+  overflow: hidden;
+}
+
+/* Buttons */
+.pm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+.pm-btn:active {
+  transform: translateY(1px);
+}
+.pm-btn-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 10px 24px -10px rgba(77, 77, 219, 0.7);
+}
+.pm-btn-primary:hover {
+  background: #3e3ebe;
+}
+.pm-btn-ghost {
+  border: 1.5px solid var(--brand-deep);
+  color: var(--brand-deep);
+  background: transparent;
+}
+.pm-btn-ghost:hover {
+  background: var(--brand-deep);
+  color: #fff;
+}
+.pm-btn-light {
+  background: #fff;
+  color: var(--brand-deep);
+}
+.pm-btn-light:hover {
+  background: var(--brand-tint);
+}
+
+/* One orchestrated entrance for the hero */
+@keyframes pm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pm-grow {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.swiper-slide-active .hero-copy > * {
+  animation: pm-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.swiper-slide-active .hero-copy > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.swiper-slide-active .hero-copy > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.swiper-slide-active .hero-copy > *:nth-child(4) {
+  animation-delay: 0.24s;
+}
+.swiper-slide-active .hero-arch {
+  animation: pm-grow 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.swiper-slide-active .hero-arch:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.swiper-slide-active .hero-arch:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

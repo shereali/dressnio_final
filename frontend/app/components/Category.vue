@@ -1,64 +1,133 @@
-<!-- Category.vue -->
 <script setup>
-import { computed } from "vue";
-
+// Category arches. Photos come from admin; categories without a photo are drawn from their garment type.
 const props = defineProps({
-  categories: {
-    type: Array,
-    default: () => [],
-  },
+  categories: { type: Array, default: () => [] },
 });
 
-const defaultCategories = [
-  { id: 1, name: "Kurta Sets", slug: "kurta-sets", image: "/img/category-kurta.jpg" },
-  { id: 2, name: "Shrug Sets", slug: "shrug-sets", image: "/img/category-shrug.jpg" },
-  { id: 3, name: "Maxis", slug: "maxis", image: "/img/category-maxi.jpg" },
-  { id: 4, name: "Lehengas", slug: "lehengas", image: "/img/category-lehenga.jpg" },
-  { id: 5, name: "Suit Sets", slug: "suit-sets", image: "/img/category-suit.jpg" },
-  { id: 6, name: "Sarees", slug: "sarees", image: "/img/category-saree.jpg" },
-];
+const defaults = [
+  "Kurta Sets", "Shrug Sets", "Maxis", "Lehengas", "Suit Sets",
+  "Dresses", "Tops & Co-ord Sets", "Sarees", "Raw Fabrics", "Unstitched Suits",
+].map((name, i) => ({ id: `d${i}`, name, slug: name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/-$/, "") }));
 
-const categoryList = computed(() => {
-  if (props.categories && props.categories.length > 0) {
-    return props.categories.map((c, idx) => ({
-      ...c,
-      image: c.image || defaultCategories[idx % defaultCategories.length].image,
-    }));
-  }
-  return defaultCategories;
+const items = computed(() => {
+  const source = props.categories?.length ? props.categories : defaults;
+  return source.slice(0, 10).map((c, i) => ({
+    ...c,
+    kind: garmentKindFor(c.name, c.slug),
+    color: toneHexAt(i),
+  }));
 });
 </script>
 
 <template>
-  <section class="bg-gray-50/50 py-20 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
+  <section class="pm-section cats" aria-labelledby="cats-title">
+    <div class="pm-wrap">
       <Headline
-        title="Browse Categories"
-        subtitle="Explore our wide range of collections"
-        class="mb-16"
+        id="cats-title"
+        title="Shop by category"
+        subtitle="From everyday kurta sets to wedding lehengas, start with the piece you have in mind."
+        align="left"
+        action-label="All products"
+        action-to="/shop"
       />
-      
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
-        <!-- Category Item -->
-        <NuxtLink
-          v-for="category in categoryList"
-          :to="`/category/${category.slug}`"
-          :key="category.id"
-          class="group flex flex-col items-center text-center space-y-4"
-        >
-          <div
-            class="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:border-brand group-hover:shadow-2xl group-hover:shadow-brand/20 transition-all duration-500 relative bg-gray-100"
-          >
-            <img
-              :src="category.image"
-              :alt="category.name"
-              class="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
-            />
-            <div class="absolute inset-0 bg-black/0 group-hover:bg-brand/10 transition-colors duration-500"></div>
-          </div>
-          <span class="font-black uppercase tracking-tight text-gray-900 group-hover:text-brand transition-colors text-xs md:text-sm">{{ category.name }}</span>
-        </NuxtLink>
-      </div>
+
+      <ul class="cats-grid">
+        <li v-for="c in items" :key="c.id" class="cat">
+          <NuxtLink :to="`/category/${c.slug}`" class="cat-link">
+            <span class="cat-arch arch" :style="{ background: toneFromHex(c.color).tint }">
+              <span class="cat-ground" :style="{ background: toneFromHex(c.color).tintDeep }"></span>
+              <ArtImage :src="c.image" :alt="c.name" :kind="c.kind" :color="c.color" class="cat-art" />
+            </span>
+            <span class="cat-name">
+              {{ c.name }}
+              <Icon name="solar:arrow-right-up-linear" class="cat-arrow w-4 h-4" />
+            </span>
+          </NuxtLink>
+        </li>
+      </ul>
     </div>
   </section>
 </template>
+
+<style scoped>
+.cats {
+  background: #fff;
+}
+.cats-grid {
+  list-style: none;
+  margin-top: clamp(2rem, 4vw, 3.2rem);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.6rem 1rem;
+}
+@media (min-width: 700px) {
+  .cats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1000px) {
+  .cats-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2.4rem 1.4rem;
+  }
+}
+.cat-link {
+  display: block;
+}
+.cat-arch {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  transition: filter 0.3s ease;
+}
+.cat-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14%;
+}
+.cat-art {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cat-art :deep(svg) {
+  padding: 12% 10% 6%;
+}
+.cat-link:hover .cat-art {
+  transform: translateY(-8px) scale(1.03);
+}
+.cat-link:hover .cat-arch {
+  filter: saturate(1.15);
+}
+.cat-name {
+  margin-top: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 500;
+  color: var(--brand-deep);
+}
+.cat-arrow {
+  flex-shrink: 0;
+  color: var(--brand);
+  opacity: 0;
+  transform: translate(-4px, 4px);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.cat-link:hover .cat-arrow,
+.cat-link:focus-visible .cat-arrow {
+  opacity: 1;
+  transform: none;
+}
+@media (hover: none) {
+  .cat-arrow {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>

@@ -12,11 +12,17 @@ use Illuminate\Support\Facades\Cache;
 class SettingController extends Controller
 {
     /**
-     * Get all settings (Admin).
+     * Get all settings (Admin). Credentials are masked: only whether they are set is shown.
      */
     public function index(): JsonResponse
     {
         $settings = Setting::all()->pluck('value', 'key');
+
+        foreach (Setting::SECRET_KEYS as $key) {
+            $plain = (string) Setting::read($key, '');
+            $settings[$key] = $plain === '' ? '' : str_repeat('•', 8) . substr($plain, -4);
+        }
+
         return ApiResponse::success($settings);
     }
 
@@ -25,18 +31,44 @@ class SettingController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
-        $data = $request->all();
+        $data = $request->except(Setting::SECRET_KEYS);
 
         foreach ($data as $key => $value) {
-            Setting::updateOrCreate(
-                ['key' => $key],
-                ['value' => is_array($value) ? json_encode($value) : (string) $value]
-            );
+            Setting::write($key, $value);
+        }
+
+        // A credential is only replaced when a new value is typed in; the masked value means "keep".
+        foreach (Setting::SECRET_KEYS as $key) {
+            $value = $request->input($key);
+
+            if (is_string($value) && $value !== '' && ! str_contains($value, '•')) {
+                Setting::write($key, trim($value));
+            }
         }
 
         Cache::forget('dressnio_public_settings');
 
         return ApiResponse::success($data, 'Settings updated successfully');
+    }
+
+    /**
+     * Send a test SMS with the saved gateway settings (Admin).
+     */
+    public function smsTest(Request $request, SmsService $sms): JsonResponse
+    {
+        $request->validate([
+            'number' => ['required', 'string', 'regex:/^01[3-9]\d{8}$/'],
+        ], ['number.regex' => 'Enter a valid Bangladeshi mobile number, like 01712345678.']);
+
+        if (! $sms->isConfigured()) {
+            return ApiResponse::error('Turn on SMS and save the API key and caller ID first.', 422);
+        }
+
+        $result = $sms->send($request->number, 'Dressnio test message. Your SMS settings work.');
+
+        return $result['ok']
+            ? ApiResponse::success(null, 'Test SMS sent')
+            : ApiResponse::error($result['error'] ?? 'The test SMS failed.', 502);
     }
 
     /**

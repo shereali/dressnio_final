@@ -3,10 +3,10 @@
     <!-- Page Header -->
     <div style="margin-bottom: 2rem; text-align: center;">
       <h1 style="font-size: 2rem; font-weight: 800; color: var(--dn-tertiary); letter-spacing: -0.02em;">
-        Secure Express Checkout
+        Checkout
       </h1>
       <p style="color: var(--dn-text-muted); font-size: 0.95rem; margin-top: 0.35rem;">
-        Complete your order in 60 seconds with cash on delivery or instant payment
+        Pay on delivery or online with bKash. Free delivery over {{ formatBDT(freeShippingAbove) }}.
       </p>
     </div>
 
@@ -38,7 +38,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 800; color: var(--dn-primary); border-top: 1px solid var(--dn-border); padding-top: 0.75rem; margin-top: 0.75rem;">
           <span>Total Amount:</span>
-          <span>৳{{ confirmedOrder?.total_amount?.toFixed(2) }}</span>
+          <span>{{ formatBDT(confirmedOrder?.total_amount) }}</span>
         </div>
       </div>
 
@@ -125,7 +125,7 @@
               >
                 <div>
                   <strong style="display: block; font-size: 0.9rem;">Inside Dhaka</strong>
-                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">24-48 Hours (৳60)</span>
+                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">{{ STORE_POLICY.deliveryInsideCity }} ({{ formatBDT(shippingFee0) }})</span>
                 </div>
                 <Icon
                   :name="deliveryCity === 'Dhaka' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
@@ -140,7 +140,7 @@
               >
                 <div>
                   <strong style="display: block; font-size: 0.9rem;">Outside Dhaka</strong>
-                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">48-72 Hours (৳120)</span>
+                  <span style="font-size: 0.75rem; color: var(--dn-text-muted);">{{ STORE_POLICY.deliveryOutsideCity }} ({{ formatBDT(shippingFeeOutside) }})</span>
                 </div>
                 <Icon
                   :name="deliveryCity === 'Outside Dhaka' ? 'solar:check-circle-bold' : 'solar:circle-outline'"
@@ -231,7 +231,7 @@
           >
             <Icon v-if="isSubmitting" name="svg-spinners:180-ring-with-bg" style="font-size: 1.25rem;" />
             <Icon v-else name="solar:lock-password-bold" style="font-size: 1.25rem;" />
-            <span>{{ isSubmitting ? 'Securing Order...' : `Place Order (৳${totalAmount.toFixed(2)})` }}</span>
+            <span>{{ isSubmitting ? 'Securing Order...' : `Place order (${formatBDT(totalAmount)})` }}</span>
           </button>
         </form>
       </div>
@@ -240,7 +240,7 @@
       <div>
         <div class="dn-card dn-card-glass" style="padding: 1.75rem; position: sticky; top: 90px;">
           <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--dn-tertiary); margin-bottom: 1.25rem;">
-            Order Summary ({{ products.length }} items)
+            Order summary ({{ products.length }} {{ products.length === 1 ? "item" : "items" }})
           </h3>
 
           <div style="max-height: 280px; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1.25rem;">
@@ -249,11 +249,7 @@
               :key="`${item.id}-${item.size}-${item.color}`"
               style="display: flex; gap: 0.85rem; padding: 0.75rem 0; border-bottom: 1px solid var(--dn-border-light);"
             >
-              <img
-                :src="item.image || '/brand/hero-chic.jpg'"
-                :alt="item.name"
-                style="width: 52px; height: 68px; object-fit: cover; border-radius: var(--dn-radius-sm);"
-              />
+              <div style="width: 52px; height: 68px; border-radius: 8px; overflow: hidden; background: var(--brand-tint); flex-shrink: 0;"><ArtImage :src="item.image" :alt="item.name" :kind="garmentKindFor(item.name)" :color="item.color || toneHexAt(item.id)" /></div>
               <div style="flex-grow: 1;">
                 <h4 style="font-size: 0.875rem; font-weight: 600; line-height: 1.3; margin-bottom: 0.25rem;">{{ item.name }}</h4>
                 <div style="font-size: 0.75rem; color: var(--dn-text-muted); display: flex; gap: 0.5rem;">
@@ -262,7 +258,7 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem;">
                   <span style="font-size: 0.8rem; color: var(--dn-text-muted);">Qty: {{ item.quantity }}</span>
-                  <strong style="font-size: 0.9rem; color: var(--dn-primary);">৳{{ (item.price * item.quantity).toFixed(2) }}</strong>
+                  <strong style="font-size: 0.9rem; color: var(--dn-primary);">{{ formatBDT(item.price * item.quantity) }}</strong>
                 </div>
               </div>
             </div>
@@ -272,22 +268,22 @@
           <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.9rem; border-top: 1px solid var(--dn-border); padding-top: 1rem;">
             <div style="display: flex; justify-content: space-between;">
               <span style="color: var(--dn-text-muted);">Subtotal:</span>
-              <strong>৳{{ subtotal.toFixed(2) }}</strong>
+              <strong>{{ formatBDT(subtotal) }}</strong>
             </div>
 
             <div style="display: flex; justify-content: space-between;">
               <span style="color: var(--dn-text-muted);">Shipping ({{ deliveryCity }}):</span>
               <strong v-if="shippingFee === 0" style="color: var(--dn-accent-emerald);">FREE</strong>
-              <strong v-else>৳{{ shippingFee.toFixed(2) }}</strong>
+              <strong v-else>{{ formatBDT(shippingFee) }}</strong>
             </div>
 
             <div v-if="subtotal < 2000" style="background: var(--dn-primary-light); padding: 0.5rem 0.75rem; border-radius: var(--dn-radius-sm); font-size: 0.775rem; color: var(--dn-primary);">
-              Add <strong>৳{{ (2000 - subtotal).toFixed(2) }}</strong> more for <strong>FREE Delivery</strong>!
+              Add <strong>{{ formatBDT(freeShippingAbove - subtotal) }}</strong> more for <strong>FREE Delivery</strong>!
             </div>
 
             <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 800; color: var(--dn-primary); border-top: 1.5px solid var(--dn-border); padding-top: 0.85rem; margin-top: 0.35rem;">
               <span>Total Payable:</span>
-              <span>৳{{ totalAmount.toFixed(2) }}</span>
+              <span>{{ formatBDT(totalAmount) }}</span>
             </div>
           </div>
 
@@ -310,10 +306,13 @@
 </template>
 
 <script setup>
+useSeoMeta({ title: "Checkout | Dressnio" });
 import { useCartStore } from "~/stores/cart";
 import { ref, computed } from "vue";
 
 const cartStore = useCartStore();
+const snackbar = useSnackbar();
+const { freeShippingAbove, shippingFee: shippingFee0, shippingFeeOutside } = useStoreSettings();
 const config = useRuntimeConfig();
 const products = computed(() => cartStore.items);
 
@@ -342,8 +341,8 @@ const subtotal = computed(() => {
 });
 
 const shippingFee = computed(() => {
-  if (subtotal.value >= 2000) return 0;
-  return deliveryCity.value === "Dhaka" ? 60 : 120;
+  if (subtotal.value >= freeShippingAbove.value) return 0;
+  return deliveryCity.value === "Dhaka" ? shippingFee0.value : shippingFeeOutside.value;
 });
 
 const totalAmount = computed(() => {
@@ -387,7 +386,7 @@ const handleCheckout = async () => {
     }
   } catch (error) {
     console.error("Order submission failed:", error);
-    alert(error.data?.message || "Failed to place order. Please check your information and try again.");
+    snackbar.add({ type: "error", text: error.data?.errors ? Object.values(error.data.errors).flat()[0] : error.data?.message || "We could not place your order. Check your details and try again.", duration: 6000 });
   } finally {
     isSubmitting.value = false;
   }

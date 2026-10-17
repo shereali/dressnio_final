@@ -23,6 +23,10 @@ class SettingsTableSeeder extends Seeder
             'free_shipping_above' => '2000',
             'bkash_number'        => '01974784848',
             'nagad_number'        => '01974784848',
+            'sms_enabled'        => '0',
+            'sms_endpoint'       => 'https://bulksmsdhaka.net/api/otpsend',
+            'sms_caller_id'       => '',
+            'sms_otp_template'   => 'Your Dressnio code is {otp}. It is valid for {minutes} minutes. Do not share it with anyone.',
             'about_text'          => 'Dressnio is a Dhaka-based fashion house curating premium stitched and unstitched wear for women — from elegant kurtas and suit sets to luxurious lehengas and hand-woven sarees.',
         ];
 

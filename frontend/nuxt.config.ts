@@ -19,6 +19,7 @@ export default defineNuxtConfig({
 
   css: [
     "~/assets/scss/dressnio-theme.scss",
+    "~/assets/css/premium.css",
   ],
 
   runtimeConfig: {
@@ -41,6 +42,9 @@ export default defineNuxtConfig({
     "nuxt-tiptap-editor",
   ],
 
+  // The storefront is designed as a light theme
+  colorMode: { preference: "light", fallback: "light", storageKey: "dressnio-color-mode" },
+
   tiptap: {
     prefix: "Tiptap", // i.e. <TiptapEditor />
   },
@@ -58,7 +62,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: "Dressnio",
+      title: "Dressnio | Kurta sets, sarees and unstitched suits",
       htmlAttrs: {
         lang: "en",
       },
@@ -69,10 +73,17 @@ export default defineNuxtConfig({
           content: "width=device-width, initial-scale=1",
         },
 
-        { hid: "description", name: "description", content: "" },
+        { hid: "description", name: "description", content: "Shop kurta sets, lehengas, sarees, maxis and unstitched suits from Dressnio. Cash on delivery across Bangladesh, bKash and Nagad accepted." },
+        { name: "theme-color", content: "#4D4DDB" },
         { name: "format-detection", content: "telephone=no" },
       ],
       link: [
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Hind+Siliguri:wght@400;500;600&display=swap",
+        },
         {
           rel: "stylesheet",
           href: "/css/style.css",

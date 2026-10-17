@@ -14,14 +14,14 @@
           to="/shop"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs sm:text-sm font-semibold transition-colors self-start sm:self-auto"
         >
-          <Icon name="solar:bag-3-bold" class="w-4 h-4 text-rose-500" />
+          <Icon name="solar:bag-3-bold" class="w-4 h-4 text-brand-500" />
           <span>Continue Shopping</span>
         </NuxtLink>
       </div>
 
       <!-- Loading State -->
       <div v-if="pending" class="py-16 text-center">
-        <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-rose-500 mx-auto mb-2" />
+        <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-brand-500 mx-auto mb-2" />
         <p class="text-sm text-stone-500">Loading your saved items...</p>
       </div>
 
@@ -30,7 +30,7 @@
         v-else-if="wishlist.length === 0"
         class="text-center py-16 px-4 rounded-2xl bg-stone-50 border border-stone-200/70"
       >
-        <div class="w-16 h-16 rounded-2xl bg-rose-100/60 text-rose-500 flex items-center justify-center mx-auto mb-3">
+        <div class="w-16 h-16 rounded-2xl bg-brand-100/60 text-brand-500 flex items-center justify-center mx-auto mb-3">
           <Icon name="solar:heart-bold" class="w-8 h-8" />
         </div>
         <h3 class="font-bold text-stone-800 text-lg">Your wishlist is empty</h3>

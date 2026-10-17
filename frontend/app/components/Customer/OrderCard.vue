@@ -26,12 +26,12 @@
           class="flex items-center justify-between text-xs sm:text-sm text-stone-700 bg-stone-50/70 p-2.5 rounded-xl border border-stone-100"
         >
           <div class="flex items-center gap-2 overflow-hidden pr-2">
-            <span class="font-bold text-rose-500 flex-shrink-0">{{ item.quantity }}x</span>
+            <span class="font-bold text-brand-500 flex-shrink-0">{{ item.quantity }}x</span>
             <span class="truncate font-medium text-stone-800">{{ item.product_name }}</span>
             <span v-if="item.size_name" class="text-stone-400 text-xs">({{ item.size_name }})</span>
           </div>
           <span class="font-semibold text-stone-900 flex-shrink-0">
-            ৳{{ (Number(item.total_price) || Number(item.unit_price) * Number(item.quantity) || 0).toFixed(2) }}
+            {{ formatBDT((Number(item.total_price) || Number(item.unit_price) * Number(item.quantity) || 0)) }}
           </span>
         </div>
 
@@ -47,7 +47,7 @@
       <div class="flex items-center justify-between text-sm mb-3.5">
         <span class="text-stone-500 font-medium">Total Amount</span>
         <span class="text-base font-extrabold text-stone-900">
-          ৳{{ (Number(order.total_amount) || Number(order.total) || 0).toFixed(2) }}
+          {{ formatBDT((Number(order.total_amount) || Number(order.total) || 0)) }}
         </span>
       </div>
 
@@ -64,7 +64,7 @@
           v-if="order.order_status === 'pending'"
           @click="cancelOrder"
           :disabled="isCancelling"
-          class="py-2 px-3 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-medium transition-colors inline-flex items-center justify-center gap-1"
+          class="py-2 px-3 rounded-xl border border-brand-200 text-brand-600 hover:bg-brand-50 text-xs font-medium transition-colors inline-flex items-center justify-center gap-1"
         >
           <Icon v-if="isCancelling" name="svg-spinners:180-ring-with-bg" class="w-3.5 h-3.5" />
           <span>{{ isCancelling ? "Cancelling..." : "Cancel" }}</span>
@@ -90,7 +90,7 @@ const statusBadgeClasses = {
   processing: "bg-blue-50 text-blue-700 border border-blue-200/60",
   shipped: "bg-purple-50 text-purple-700 border border-purple-200/60",
   delivered: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
-  cancelled: "bg-rose-50 text-rose-700 border border-rose-200/60",
+  cancelled: "bg-brand-50 text-brand-700 border border-brand-200/60",
 };
 
 const formatDate = (dateString) => {

@@ -11,7 +11,7 @@
 
       <!-- Loading State -->
       <div v-if="pending" class="py-12 text-center">
-        <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-rose-500 mx-auto mb-2" />
+        <Icon name="svg-spinners:180-ring-with-bg" class="w-8 h-8 text-brand-500 mx-auto mb-2" />
         <p class="text-sm text-stone-500">Loading profile data...</p>
       </div>
 
@@ -26,7 +26,7 @@
             v-model="form.name"
             type="text"
             required
-            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all bg-white"
+            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all bg-white"
             placeholder="e.g. Ayesha Rahman"
           />
         </div>
@@ -61,7 +61,7 @@
           <input
             v-model="form.email"
             type="email"
-            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all bg-white"
+            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all bg-white"
             placeholder="ayesha@example.com"
           />
         </div>
@@ -73,7 +73,7 @@
           </label>
           <select
             v-model="form.city"
-            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all bg-white"
+            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all bg-white"
           >
             <option value="Dhaka">Dhaka (Inside Dhaka - ৳60)</option>
             <option value="Outside Dhaka">Outside Dhaka (All Bangladesh - ৳120)</option>
@@ -95,7 +95,7 @@
           <textarea
             v-model="form.address"
             rows="3"
-            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all bg-white resize-none"
+            class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all bg-white resize-none"
             placeholder="House #, Road #, Sector / Area, Landmark (e.g. Flat 4B, House 12, Road 7, Dhanmondi, Dhaka)"
           ></textarea>
         </div>

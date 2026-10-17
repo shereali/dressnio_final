@@ -5,7 +5,7 @@
       <div>
         <!-- Customer Profile Quick Header -->
         <div class="flex items-center gap-3.5 pb-5 mb-5 border-b border-stone-100">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-rose-400 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-rose-200 flex-shrink-0">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-500 to-brand-400 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-brand-200 flex-shrink-0">
             {{ customerInitials }}
           </div>
           <div class="overflow-hidden">
@@ -27,7 +27,7 @@
               <NuxtLink
                 :to="item.page_route"
                 class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all"
-                :class="route.path === item.page_route ? 'bg-rose-500 text-white shadow-sm' : 'bg-stone-100 text-stone-700'"
+                :class="route.path === item.page_route ? 'bg-brand-500 text-white shadow-sm' : 'bg-stone-100 text-stone-700'"
               >
                 <Icon :name="item.icon" class="w-4 h-4" />
                 <span>{{ item.text }}</span>
@@ -53,7 +53,7 @@
         <button
           @click="handleLogout"
           :disabled="isLoggingOut"
-          class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-50/70 hover:bg-rose-100/70 transition-colors duration-200"
+          class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-brand-600 hover:text-brand-700 bg-brand-50/70 hover:bg-brand-100/70 transition-colors duration-200"
         >
           <Icon v-if="isLoggingOut" name="svg-spinners:180-ring-with-bg" class="w-4 h-4" />
           <Icon v-else name="solar:logout-2-linear" class="w-4 h-4" />

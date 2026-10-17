@@ -14,7 +14,7 @@
           to="/shop"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs sm:text-sm font-semibold transition-colors self-start sm:self-auto"
         >
-          <Icon name="solar:bag-3-bold" class="w-4 h-4 text-rose-500" />
+          <Icon name="solar:bag-3-bold" class="w-4 h-4 text-brand-500" />
           <span>Continue Shopping</span>
         </NuxtLink>
       </div>
@@ -24,7 +24,7 @@
         v-if="cartStore.items.length === 0"
         class="text-center py-16 px-4 rounded-2xl bg-stone-50 border border-stone-200/70"
       >
-        <div class="w-16 h-16 rounded-2xl bg-rose-100/60 text-rose-500 flex items-center justify-center mx-auto mb-3">
+        <div class="w-16 h-16 rounded-2xl bg-brand-100/60 text-brand-500 flex items-center justify-center mx-auto mb-3">
           <Icon name="solar:cart-large-minimalistic-bold" class="w-8 h-8" />
         </div>
         <h3 class="font-bold text-stone-800 text-lg">Your cart is empty</h3>
@@ -72,8 +72,8 @@
                   Color: {{ item.color }}
                 </span>
               </div>
-              <p class="font-bold text-rose-600 text-sm sm:text-base mt-2">
-                ৳{{ Number(item.price).toFixed(2) }}
+              <p class="font-bold text-brand-600 text-sm sm:text-base mt-2">
+                {{ formatBDT(Number(item.price)) }}
               </p>
             </div>
 
@@ -97,7 +97,7 @@
             <!-- Remove Button -->
             <button
               @click="cartStore.removeProduct(item)"
-              class="w-8 h-8 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors"
+              class="w-8 h-8 rounded-xl text-stone-400 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-colors"
               title="Remove item"
             >
               <Icon name="solar:trash-bin-trash-bold" class="w-4 h-4" />
@@ -114,7 +114,7 @@
           <div class="space-y-2.5 text-sm">
             <div class="flex justify-between text-stone-600">
               <span>Subtotal</span>
-              <span class="font-semibold text-stone-900">৳{{ subtotal.toFixed(2) }}</span>
+              <span class="font-semibold text-stone-900">{{ formatBDT(subtotal) }}</span>
             </div>
             <div class="flex justify-between text-stone-600">
               <span>Shipping</span>
@@ -122,14 +122,14 @@
                 {{ subtotal >= 2000 ? 'Free' : 'Calculated at checkout' }}
               </span>
             </div>
-            <div v-if="subtotal < 2000" class="text-xs text-rose-500 bg-rose-50/80 p-2 rounded-lg">
-              Add ৳{{ (2000 - subtotal).toFixed(2) }} more for FREE delivery across Bangladesh!
+            <div v-if="subtotal < 2000" class="text-xs text-brand-500 bg-brand-50/80 p-2 rounded-lg">
+              Add {{ formatBDT(2000 - subtotal) }} more for FREE delivery across Bangladesh!
             </div>
           </div>
 
           <div class="border-t border-stone-200 pt-3 mt-4 mb-5 flex justify-between items-baseline">
             <span class="font-bold text-stone-900 text-base">Estimated Total</span>
-            <span class="font-extrabold text-xl text-stone-900">৳{{ subtotal.toFixed(2) }}</span>
+            <span class="font-extrabold text-xl text-stone-900">{{ formatBDT(subtotal) }}</span>
           </div>
 
           <NuxtLink

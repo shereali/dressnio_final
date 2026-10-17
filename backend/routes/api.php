@@ -72,6 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('settings', [SettingController::class, 'index']);
     Route::put('settings', [SettingController::class, 'update']);
+    Route::post('settings/sms-test', [SettingController::class, 'smsTest'])->middleware('throttle:5,1');
 
     Route::post('facebook', [ConfigureController::class, 'facebook']);
     Route::post('instagram', [ConfigureController::class, 'instagram']);

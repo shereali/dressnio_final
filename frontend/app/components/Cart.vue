@@ -11,7 +11,7 @@
     <!-- Floating Cart Container -->
     <div
       v-if="cartStore.isOpen"
-      class="fixed top-14 sm:top-16 lg:top-[93px] right-3 sm:right-6 lg:right-8 z-[950] transform transition-all duration-300 ease-out"
+      class="fixed top-[74px] sm:top-[78px] lg:top-[80px] right-3 sm:right-6 lg:right-8 z-[950] transform transition-all duration-300 ease-out"
       :class="cartStore.isOpen ? 'translate-y-2 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95 pointer-events-none'"
     >
       <!-- Cart Card -->
@@ -66,11 +66,7 @@
             >
               <!-- Thumbnail -->
               <div class="w-16 h-20 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200/60 dark:border-gray-700">
-                <img
-                  :src="product.image || '/brand/hero-chic.jpg'"
-                  :alt="product.name"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                <ArtImage :src="product.image" :alt="product.name" :kind="garmentKindFor(product.name)" :color="product.color || toneHexAt(product.id)" />
               </div>
           
               <!-- Item Details -->
@@ -103,7 +99,7 @@
                 <!-- Price & Comfortable Ergonomic Quantity Controller -->
                 <div class="flex items-center justify-between mt-2 pt-1 border-t border-gray-200/40 dark:border-gray-700/40">
                   <div class="font-black text-brand text-sm tracking-tight">
-                    ৳{{ (product.price * product.quantity).toFixed(2) }}
+                    {{ formatBDT(product.price * product.quantity) }}
                   </div>
                   
                   <!-- User-Friendly Large +/- Button Cluster -->
@@ -138,9 +134,18 @@
 
         <!-- Footer -->
         <div v-if="cartStore.items.length > 0" class="p-4 bg-gray-50/80 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 space-y-3">
+          <div class="space-y-1.5">
+            <p class="text-xs font-semibold text-gray-700" aria-live="polite">
+              <template v-if="remaining > 0">Add {{ formatBDT(remaining) }} more for free delivery</template>
+              <template v-else>You have free delivery on this order</template>
+            </p>
+            <div class="h-1.5 rounded-full bg-brand-100 overflow-hidden" role="progressbar" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100">
+              <div class="h-full bg-brand rounded-full transition-all duration-500" :style="{ width: progress + '%' }"></div>
+            </div>
+          </div>
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Subtotal</span>
-            <span class="text-base font-black text-gray-900 dark:text-white tracking-tight">৳{{ calculateTotal() }}</span>
+            <span class="text-base font-black text-gray-900 dark:text-white tracking-tight">{{ formatBDT(cartStore.totalAmount) }}</span>
           </div>
           <p class="text-[10px] text-gray-500 text-center">Shipping and delivery calculated at checkout</p>
           
@@ -172,6 +177,9 @@ import { useCartStore } from "~/stores/cart";
 const router = useRouter();
 const cartStore = useCartStore();
 const snackbar = useSnackbar();
+const { freeShippingAbove } = useStoreSettings();
+const remaining = computed(() => Math.max(0, freeShippingAbove.value - cartStore.totalAmount));
+const progress = computed(() => Math.min(100, (cartStore.totalAmount / freeShippingAbove.value) * 100));
 
 const updateQuantity = (product) => {
   cartStore.updateQuantity(product);

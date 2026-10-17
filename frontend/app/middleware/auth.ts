@@ -4,6 +4,6 @@ export default defineNuxtRouteMiddleware((to, from) => {
     if (to.path.startsWith("/admin")) {
       return navigateTo("/admin/login");
     }
-    return navigateTo("/login");
+    return navigateTo({ path: "/login", query: { redirect: to.fullPath } });
   }
 });

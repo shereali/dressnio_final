@@ -27,11 +27,7 @@
           style="padding: 1.25rem; display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;"
         >
           <!-- Product Thumb -->
-          <img
-            :src="product.image || '/brand/hero-chic.jpg'"
-            :alt="product.name"
-            style="width: 80px; height: 104px; object-fit: cover; border-radius: var(--dn-radius-md);"
-          />
+          <div style="width: 80px; height: 104px; border-radius: 12px; overflow: hidden; background: var(--brand-tint);"><ArtImage :src="product.image" :alt="product.name" :kind="garmentKindFor(product.name)" :color="product.color || toneHexAt(product.id)" /></div>
 
           <!-- Details -->
           <div style="flex: 1; min-width: 180px;">
@@ -122,6 +118,7 @@
 </template>
 
 <script setup>
+useSeoMeta({ title: "Your bag | Dressnio" });
 import { useCartStore } from "~/stores/cart";
 import { computed } from "vue";
 
@@ -146,11 +143,7 @@ const subtotal = computed(() => {
 
 const total = computed(() => subtotal.value);
 
-const formatCurrency = (price) => {
-  const val = parseFloat(price);
-  if (isNaN(val)) return "৳0.00";
-  return `৳${val.toFixed(2)}`;
-};
+const formatCurrency = (price) => formatBDT(price);
 </script>
 
 <style scoped>
