@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
           <Icon name="solar:heart-linear" class="w-6 h-6" />
           <span v-if="wishlist.count" class="count">{{ wishlist.count }}</span>
         </NuxtLink>
-        <button type="button" class="icon-btn" aria-label="Open shopping bag" @click="cartStore.openCart()">
+        <button type="button" class="icon-btn" aria-label="Toggle shopping bag" @click="cartStore.toggleCart()">
           <Icon name="solar:bag-3-linear" class="w-6 h-6" />
           <span v-if="cartStore.items.length" class="count">{{ cartStore.items.length }}</span>
         </button>

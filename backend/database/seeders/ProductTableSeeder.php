@@ -97,6 +97,14 @@ class ProductTableSeeder extends Seeder
             ['Winter Wool Unstitched Suit', 'Unstitched Suits', 1, 3600, 'C', 0, 'Warm wool-blend suit fabric with a shawl, perfect for winter.'],
             ['Chikankari Cotton Unstitched Suit', 'Unstitched Suits', 1, 3200, 'H', 0, 'Chikankari embroidery on cotton, includes shirt, trouser and dupatta fabrics.'],
             ['Digital Print Silk Unstitched Suit', 'Unstitched Suits', 1, 4100, '', 10, 'Vibrant digital print on silk, with a matching trouser and dupatta.'],
+            // Bangladeshi three-piece and salwar kameez
+            ['Tangail Cotton Three Piece Set', 'Suit Sets', 1, 3200, 'FNB', 0, 'Bangladeshi three-piece in Tangail cotton with woven border, matching salwar and dupatta.'],
+            ['Dhakai Jamdani Three Piece', 'Suit Sets', 1, 6500, 'FNCH', 0, 'Dhakai jamdani-woven kameez with a contrast salwar and soft muslin dupatta, a Bangladeshi festive classic.'],
+            ['Rajshahi Silk Salwar Kameez', 'Suit Sets', 1, 5800, 'FC', 0, 'Rajshahi silk salwar kameez with block-print detailing and a coordinated dupatta.'],
+            ['Boishakhi Block Print Three Piece', 'Suit Sets', 1, 2750, 'NB', 10, 'Red and white block-print three-piece, made for Pohela Boishakh celebrations.'],
+            ['Eid Collection Embroidered Salwar Kameez', 'Suit Sets', 1, 4900, 'FNB', 0, 'Embroidered georgette salwar kameez in Eid colours with a matching dupatta.'],
+            ['Khadi Cotton Three Piece (Unstitched)', 'Unstitched Suits', 1, 2600, 'NC', 0, 'Handloom khadi cotton unstitched three-piece with printed dupatta, comfortable for Bangladeshi summers.'],
+            ['Dhakai Muslin Salwar Kameez', 'Kurta Sets', 1, 3900, 'F', 0, 'Lightweight muslin salwar kameez with traditional woven motifs and a chiffon dupatta.'],
         ];
 
         foreach ($products as $index => [$name, $categoryName, $clothType, $basePrice, $flags, $discount, $blurb]) {

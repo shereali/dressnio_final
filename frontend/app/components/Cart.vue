@@ -1,14 +1,7 @@
 <!-- Cart.vue - Floating Dropdown Below Navbar -->
 <template>
   <div>
-    <!-- Backdrop overlay for smooth focus -->
-    <div
-      v-if="cartStore.isOpen"
-      @click="closeCart"
-      class="fixed inset-0 z-[940] bg-black/20 backdrop-blur-xs transition-opacity duration-300"
-    ></div>
-
-    <!-- Floating Cart Container -->
+<!-- Floating cart: non-blocking, the page stays usable so more items can be added -->
     <div
       v-if="cartStore.isOpen"
       class="fixed top-[74px] sm:top-[78px] lg:top-[80px] right-3 sm:right-6 lg:right-8 z-[950] transform transition-all duration-300 ease-out"
