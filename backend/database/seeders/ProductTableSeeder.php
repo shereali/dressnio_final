@@ -132,7 +132,8 @@ class ProductTableSeeder extends Seeder
             );
 
             // Ensure Product has a Media image
-            $imgUrl = $demoImages[$index % count($demoImages)];
+            // Photos live in frontend/public/images/products/<slug>.jpg; the storefront draws the garment until the file exists.
+            $imgUrl = '/images/products/' . $slug . '.jpg';
             $media = Media::firstOrCreate(
                 ['slug' => 'prod-media-' . $slug],
                 [
@@ -142,6 +143,10 @@ class ProductTableSeeder extends Seeder
                     'media_type'  => 1,
                 ]
             );
+            // Move seeded rows off the old shared placeholders, but never touch a photo uploaded from the admin panel.
+            if (in_array($media->media_url, $demoImages, true)) {
+                $media->update(['media_url' => $imgUrl]);
+            }
 
             if (! Mediable::where('media_id', $media->id)->where('mediable_id', $product->id)->where('mediable_type', 'products')->exists()) {
                 Mediable::create([
