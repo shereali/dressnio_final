@@ -42,6 +42,7 @@ onMounted(() => {
 .art-photo {
   width: 100%;
   height: 100%;
+  object-position: 50% 15%;
 }
 .art-drawn {
   padding: 6% 12% 2%;

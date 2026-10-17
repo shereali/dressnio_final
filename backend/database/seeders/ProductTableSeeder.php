@@ -32,6 +32,22 @@ class ProductTableSeeder extends Seeder
             '/img/p3.jpg',
             '/img/p4.jpg',
             '/img/shop1.jpg',
+            '/brand/hero-chic.jpg', '/brand/hero-evening.jpg', '/brand/hero-summer.jpg', '/brand/hero-festive.jpg',
+            '/brand/story-1.jpg', '/brand/story-2.jpg', '/brand/story-3.jpg', '/brand/story-4.jpg',
+        ];
+
+        // Product photos in frontend/public/images/products, chosen by garment type
+        $photoFor = [
+            'Lehengas'         => ['bridal-crimson-lehenga'],
+            'Sarees'           => ['jamdani-saree'],
+            'Maxis'            => ['floral-maxi-dress'],
+            'Dresses'          => ['floral-maxi-dress'],
+            'Suit Sets'        => ['pastel-pink-salwar-kameez', 'teal-embroidered-three-piece'],
+            'Kurta Sets'       => ['pastel-pink-salwar-kameez', 'teal-embroidered-three-piece'],
+            'Unstitched Suits' => ['teal-embroidered-three-piece', 'pastel-pink-salwar-kameez'],
+            'Shrug Sets'       => ['teal-embroidered-three-piece', 'pastel-pink-salwar-kameez'],
+            'Tops & Co-ord Sets' => ['pastel-pink-salwar-kameez', 'teal-embroidered-three-piece'],
+            'Raw Fabrics'      => ['teal-embroidered-three-piece', 'pastel-pink-salwar-kameez'],
         ];
 
         // flags: F = featured, N = new arrival, B = best seller, C = fashionist choice, H = highlight
@@ -132,8 +148,8 @@ class ProductTableSeeder extends Seeder
             );
 
             // Ensure Product has a Media image
-            // Photos live in frontend/public/images/products/<slug>.jpg; the storefront draws the garment until the file exists.
-            $imgUrl = '/images/products/' . $slug . '.jpg';
+            $options = $photoFor[$item['category']] ?? ['teal-embroidered-three-piece'];
+            $imgUrl = '/images/products/' . $options[$index % count($options)] . '.jpg';
             $media = Media::firstOrCreate(
                 ['slug' => 'prod-media-' . $slug],
                 [
@@ -144,7 +160,7 @@ class ProductTableSeeder extends Seeder
                 ]
             );
             // Move seeded rows off the old shared placeholders, but never touch a photo uploaded from the admin panel.
-            if (in_array($media->media_url, $demoImages, true)) {
+            if (in_array($media->media_url, $demoImages, true) || $media->media_url === '/images/products/' . $slug . '.jpg') {
                 $media->update(['media_url' => $imgUrl]);
             }
 
