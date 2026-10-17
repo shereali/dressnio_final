@@ -163,7 +163,7 @@ const tags = (slide) => {
   min-height: 620px;
 }
 .hero-title {
-  font-size: clamp(2.4rem, 5.4vw, 4.7rem);
+  font-size: clamp(2.9rem, 6.2vw, 5.6rem);
   line-height: 1.04;
   font-weight: 600;
   color: var(--brand-deep);

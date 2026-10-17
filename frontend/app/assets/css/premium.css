@@ -2,8 +2,12 @@
    Brand colours stay as defined in the theme (indigo #4D4DDB family). */
 
 :root {
-  --font-display: "Bodoni Moda", Georgia, serif;
-  --font-body: "DM Sans", "Hind Siliguri", system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Hind Siliguri", Georgia, serif;
+  --font-body: "DM Sans Variable", "Hind Siliguri", system-ui, sans-serif;
+  --magenta: #c21ce0;
+  --magenta-deep: #7a1fd1;
+  --magenta-tint: #fbefff;
+  --brand-gradient: linear-gradient(135deg, #d41bf0 0%, #7a1fd1 100%);
   --brand: #4d4ddb;
   --brand-deep: #151552;
   --brand-tint: #f0f0fe;
@@ -23,7 +27,14 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 :focus-visible {

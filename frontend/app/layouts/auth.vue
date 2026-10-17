@@ -1,7 +1,7 @@
 <template>
   <div class="au">
     <aside class="au-art" aria-hidden="true">
-      <NuxtLink to="/" class="au-logo" tabindex="-1"><BrandLogo :size="38" /></NuxtLink>
+      <NuxtLink to="/" class="au-logo" tabindex="-1"><BrandLogo :size="38" dark /></NuxtLink>
       <div class="au-stage">
         <div class="au-arch arch"><GarmentArt kind="lehenga" color="#EBB84C" /></div>
         <div class="au-arch arch small"><GarmentArt kind="kurta" color="#F2A7BC" /></div>

@@ -39,7 +39,7 @@ const year = new Date().getFullYear();
       <div class="ft-grid">
         <div class="ft-brand">
           <NuxtLink to="/" class="ft-logo" aria-label="Dressnio home">
-            <BrandLogo :size="38" />
+            <BrandLogo :size="38" dark />
           </NuxtLink>
           <p class="ft-about">
             {{ about || "Stitched and unstitched wear for women: kurta sets, lehengas, sarees and more." }}

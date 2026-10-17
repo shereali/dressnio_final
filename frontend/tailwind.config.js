@@ -12,8 +12,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Bodoni Moda"', "Georgia", "serif"],
-        sans: ['"DM Sans"', '"Hind Siliguri"', "system-ui", "sans-serif"],
+        display: ['"Instrument Serif"', '"Hind Siliguri"', "Georgia", "serif"],
+        sans: ['"DM Sans Variable"', '"Hind Siliguri"', "system-ui", "sans-serif"],
       },
       colors: {
         brand: {

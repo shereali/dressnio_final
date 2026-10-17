@@ -18,6 +18,12 @@ export default defineNuxtConfig({
   },
 
   css: [
+    "@fontsource-variable/dm-sans/index.css",
+    "@fontsource/instrument-serif/400.css",
+    "@fontsource/instrument-serif/400-italic.css",
+    "@fontsource/hind-siliguri/400.css",
+    "@fontsource/hind-siliguri/500.css",
+    "@fontsource/hind-siliguri/600.css",
     "~/assets/scss/dressnio-theme.scss",
     "~/assets/css/premium.css",
     "~/assets/css/admin.css",
@@ -42,6 +48,14 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "nuxt-tiptap-editor",
   ],
+
+  // Icons are bundled from the installed @iconify-json sets, never fetched from a CDN at runtime
+  icon: {
+    provider: "server",
+    serverBundle: "local",
+    clientBundle: { scan: true, sizeLimitKb: 1024 },
+    fallbackToApi: false,
+  },
 
   // The storefront is designed as a light theme
   colorMode: { preference: "light", fallback: "light", storageKey: "dressnio-color-mode" },
@@ -75,19 +89,13 @@ export default defineNuxtConfig({
         },
 
         { hid: "description", name: "description", content: "Shop kurta sets, lehengas, sarees, maxis and unstitched suits from Dressnio. Cash on delivery across Bangladesh, bKash and Nagad accepted." },
-        { name: "theme-color", content: "#4D4DDB" },
+        { name: "theme-color", content: "#5B3FD9" },
         { property: "og:image", content: "/brand/logo.png" },
         { property: "og:site_name", content: "Dressnio" },
         { name: "format-detection", content: "telephone=no" },
       ],
       link: [
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-        { rel: "preconnect", href: "https://fonts.googleapis.com" },
-        { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" },
-        {
-          rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Hind+Siliguri:wght@400;500;600&display=swap",
-        },
         {
           rel: "stylesheet",
           href: "/css/style.css",
