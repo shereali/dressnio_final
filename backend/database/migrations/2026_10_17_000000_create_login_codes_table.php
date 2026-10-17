@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
@@ -12,6 +13,19 @@ return new class extends Migration
             return;
         }
 
+        // The deploy script and the container entrypoint can both run migrations at once.
+        // If the other run created the table first, there is nothing left to do.
+        try {
+            $this->createTable();
+        } catch (QueryException $e) {
+            if (! Schema::hasTable('login_codes')) {
+                throw $e;
+            }
+        }
+    }
+
+    private function createTable(): void
+    {
         Schema::create('login_codes', function (Blueprint $table) {
             $table->id();
             $table->string('mobile_no')->unique();
